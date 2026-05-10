@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>ForgeVault Desktop</title>
+    <style>
+      :root { color-scheme: dark; --bg:#0b0d10; --panel:#171a1f; --panel2:#20242b; --line:#3a404a; --text:#e7e9ed; --muted:#a9b0ba; --orange:#f97316; --orange2:#fb923c; --error:#ef4444; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: "Segoe UI", Roboto, system-ui, sans-serif; background: linear-gradient(135deg, #080a0d, #15181d 55%, #101216); color: var(--text); }
+      header { border-bottom: 1px solid var(--line); padding: 1.25rem 2rem; background: rgba(11,13,16,.96); display:flex; align-items:center; justify-content:space-between; }
+      h1 { margin:0; letter-spacing:.08em; text-transform:uppercase; font-size:1.25rem; }
+      .tag { color: var(--muted); font-size:.9rem; }
+      main { max-width: 1180px; margin: 0 auto; padding: 2rem; display:grid; gap:1rem; }
+      .grid { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
+      .card { background: linear-gradient(180deg, var(--panel), #12151a); border:1px solid var(--line); border-radius: 4px; box-shadow: 0 18px 40px rgba(0,0,0,.28); padding:1rem; }
+      h2 { margin:.1rem 0 1rem; font-size:1rem; text-transform:uppercase; letter-spacing:.08em; color:#f3f4f6; }
+      label { display:block; margin:.7rem 0 .25rem; color:var(--muted); font-size:.85rem; }
+      input, select { width:100%; padding:.72rem .8rem; border-radius:2px; border:1px solid var(--line); background:#0d1014; color:var(--text); outline:none; }
+      input:focus { border-color: var(--orange); box-shadow:0 0 0 1px rgba(249,115,22,.35); }
+      button { border:1px solid #c45a10; background:linear-gradient(180deg,var(--orange2),var(--orange)); color:#15110d; font-weight:800; text-transform:uppercase; letter-spacing:.05em; padding:.72rem 1rem; border-radius:2px; cursor:pointer; margin-top:1rem; }
+      button.secondary { border-color:var(--line); background:#252a32; color:var(--text); }
+      .row { display:grid; grid-template-columns: 1fr 1fr; gap:.75rem; }
+      .status { min-height:1.4rem; color:var(--muted); margin-top:.75rem; }
+      .error { color:var(--error); }
+      .records { display:grid; gap:.75rem; }
+      .record { border:1px solid var(--line); background:var(--panel2); border-radius:3px; padding:.9rem; }
+      .record h3 { margin:0 0 .35rem; }
+      code { color:#fbbf24; }
+      .muted { color:var(--muted); }
+      table { width:100%; border-collapse:collapse; margin-top:.5rem; }
+      th, td { border-bottom:1px solid var(--line); padding:.45rem; text-align:left; font-size:.86rem; }
+      th { color:var(--muted); font-weight:600; }
+      @media (max-width: 860px) { .grid, .row { grid-template-columns: 1fr; } header { display:block; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>ForgeVault</h1>
+      <div class="tag">Hard-edged file revision control for manufacturing</div>
+    </header>
+    <main>
+      <section class="grid">
+        <div class="card">
+          <h2>Manage a Folder</h2>
+          <label for="folder">Folder path</label>
+          <input id="folder" placeholder="C:\\Engineering\\Jobs\\ACME" />
+          <div class="row">
+            <div><label for="actor">User</label><input id="actor" value="desktop" /></div>
+            <div><label for="internal_revision">Internal Rev</label><input id="internal_revision" value="001" /></div>
+          </div>
+          <div class="row">
+            <div><label for="customer_part_number">Customer Part # (optional)</label><input id="customer_part_number" /></div>
+            <div><label for="customer_revision">Customer Rev (optional)</label><input id="customer_revision" /></div>
+          </div>
+          <button id="ingest-folder">Index Folder</button>
+          <div id="folder-status" class="status"></div>
+        </div>
+        <div class="card">
+          <h2>Search Vault</h2>
+          <label for="q">Filename, internal ID, customer part/rev, or path</label>
+          <input id="q" placeholder="CUST-42, bracket.step, FV-..." />
+          <button id="search">Search</button>
+          <button id="refresh" class="secondary">Refresh</button>
+          <div id="search-status" class="status"></div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Records</h2>
+        <div id="results" class="records"><p class="muted">Point ForgeVault at a folder or search to begin.</p></div>
+      </section>
+    </main>
+    <script>
+      const params = new URLSearchParams(location.search);
+      if (params.get('folder')) document.querySelector('#folder').value = params.get('folder');
+      const status = (id, message, error=false) => { const el = document.querySelector(id); el.textContent = message; el.className = error ? 'status error' : 'status'; };
+      async function jsonFetch(url, options) {
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || JSON.stringify(data));
+        return data;
+      }
+      async function loadVersions(internalId) {
+        const versions = await jsonFetch(`/api/v1/records/${encodeURIComponent(internalId)}/versions`);
+        return `<table><thead><tr><th>Version</th><th>File</th><th>Hash</th><th>Source</th></tr></thead><tbody>${versions.map(v => `<tr><td>${v.version_number}</td><td>${v.filename}</td><td><code>${v.file_object.sha256.slice(0,12)}</code></td><td>${v.original_source_path}</td></tr>`).join('')}</tbody></table>`;
+      }
+      async function renderRecords(data) {
+        const results = document.querySelector('#results');
+        if (!data.length) { results.innerHTML = '<p class="muted">No records found.</p>'; return; }
+        results.innerHTML = '';
+        for (const {record, latest_version} of data) {
+          const article = document.createElement('article');
+          article.className = 'record';
+          article.innerHTML = `<h3>${record.customer_part_number} <code>${record.internal_record_id}</code></h3><div class="muted">Customer Rev ${record.customer_revision} · Internal Rev ${record.internal_revision} · Latest ${latest_version ? latest_version.filename : 'none'}</div><div class="versions">Loading revisions…</div>`;
+          results.appendChild(article);
+          article.querySelector('.versions').innerHTML = await loadVersions(record.internal_record_id);
+        }
+      }
+      async function search() {
+        try { status('#search-status', 'Searching…'); const q = document.querySelector('#q').value || 'UNMAPPED'; const data = await jsonFetch(`/api/v1/search?q=${encodeURIComponent(q)}`); await renderRecords(data); status('#search-status', `${data.length} record(s) found.`); }
+        catch (e) { status('#search-status', e.message, true); }
+      }
+      document.querySelector('#search').addEventListener('click', search);
+      document.querySelector('#refresh').addEventListener('click', search);
+      document.querySelector('#ingest-folder').addEventListener('click', async () => {
+        try {
+          status('#folder-status', 'Indexing folder…');
+          const payload = {
+            folder_path: document.querySelector('#folder').value,
+            actor: document.querySelector('#actor').value,
+            internal_revision: document.querySelector('#internal_revision').value,
+            customer_part_number: document.querySelector('#customer_part_number').value || null,
+            customer_revision: document.querySelector('#customer_revision').value || null,
+            recursive: true
+          };
+          const result = await jsonFetch('/api/v1/ingest-folder', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          status('#folder-status', `Scanned ${result.scanned}; ingested ${result.ingested}; failed ${result.failed}.`);
+          document.querySelector('#q').value = payload.customer_part_number || 'UNMAPPED';
+          await search();
+        } catch (e) { status('#folder-status', e.message, true); }
+      });
+    </script>
+  </body>
+</html>

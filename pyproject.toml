@@ -1,0 +1,34 @@
+[project]
+name = "forgevault"
+version = "0.1.0"
+description = "Production-grade Product Data Management system for manufacturing file workflows."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.111.0",
+  "uvicorn[standard]>=0.29.0",
+  "sqlalchemy>=2.0.30",
+  "psycopg[binary]>=3.1.18",
+  "pydantic-settings>=2.2.1",
+  "alembic>=1.13.0",
+  "python-multipart>=0.0.9",
+]
+
+[project.scripts]
+forgevault-desktop = "forgevault.desktop:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+  "httpx>=0.27.0",
+]
+
+[build-system]
+requires = ["setuptools>=69.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["tests"]
