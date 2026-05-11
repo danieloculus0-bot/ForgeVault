@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: forgevault
+      POSTGRES_PASSWORD: forgevault
+      POSTGRES_DB: forgevault
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forgevault -d forgevault"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - forgevault_postgres:/var/lib/postgresql/data
+
+  forgevault:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      FORGEVAULT_DATABASE_URL: postgresql+psycopg://forgevault:forgevault@postgres:5432/forgevault
+      FORGEVAULT_LOCAL_VAULT_ROOT: /data/vault
+      FORGEVAULT_STAGING_ROOT: /data/staging
+      FORGEVAULT_JOBBOSS2_OUTBOX_ROOT: /data/jobboss2/outbox
+      FORGEVAULT_AUTO_CREATE_SCHEMA: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - forgevault_data:/data
+      - type: bind
+        source: ./managed-folders
+        target: /managed-folders
+        bind:
+          create_host_path: true
+
+volumes:
+  forgevault_postgres:
+  forgevault_data:
