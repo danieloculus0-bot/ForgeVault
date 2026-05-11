@@ -37,27 +37,51 @@ def latest_version(session: Session, record_id) -> FileVersion | None:
     return session.scalar(select(FileVersion).where(FileVersion.record_id == record_id).order_by(FileVersion.version_number.desc()).limit(1))
 
 
+def active_checkout(session: Session, record_id) -> Checkout | None:
+    return session.scalar(select(Checkout).where(Checkout.record_id == record_id, Checkout.released_at.is_(None)))
+
+
 def check_out(session: Session, *, record_id, actor: str, reason: str | None = None) -> Checkout:
-    active = session.scalar(select(Checkout).where(Checkout.record_id == record_id, Checkout.released_at.is_(None)))
+    active = active_checkout(session, record_id)
     if active:
         raise ValueError(f"record is already checked out by {active.checked_out_by}")
     checkout = Checkout(record_id=record_id, checked_out_by=actor, reason=reason)
     session.add(checkout)
-    audit(session, actor=actor, action="checkout.created", entity_type="checkouts", entity_id=str(record_id), details={"reason": reason})
+    session.flush()
+    audit(session, actor=actor, action="checkout.created", entity_type="checkouts", entity_id=str(checkout.id), details={"reason": reason})
     return checkout
 
 
 def assert_can_check_in(session: Session, *, record_id, actor: str) -> None:
-    checkout = session.scalar(select(Checkout).where(Checkout.record_id == record_id, Checkout.released_at.is_(None)))
+    checkout = active_checkout(session, record_id)
     if checkout and checkout.checked_out_by != actor:
         raise ValueError(f"record is checked out by {checkout.checked_out_by}; {actor} cannot check in a new version")
 
 
-def release_checkout(session: Session, *, record_id, actor: str) -> None:
-    checkout = session.scalar(select(Checkout).where(Checkout.record_id == record_id, Checkout.released_at.is_(None)))
+def release_checkout(session: Session, *, record_id, actor: str) -> Checkout | None:
+    checkout = active_checkout(session, record_id)
     if checkout:
         checkout.released_at = utcnow()
         audit(session, actor=actor, action="checkout.released", entity_type="checkouts", entity_id=str(checkout.id))
+    return checkout
+
+
+def cancel_checkout(session: Session, *, record_id, actor: str, reason: str | None = None, force: bool = False) -> Checkout:
+    checkout = active_checkout(session, record_id)
+    if not checkout:
+        raise ValueError("record is not currently checked out")
+    if checkout.checked_out_by != actor and not force:
+        raise ValueError(f"record is checked out by {checkout.checked_out_by}; {actor} cannot cancel this checkout")
+    checkout.released_at = utcnow()
+    audit(
+        session,
+        actor=actor,
+        action="checkout.cancelled",
+        entity_type="checkouts",
+        entity_id=str(checkout.id),
+        details={"reason": reason, "force": force, "checked_out_by": checkout.checked_out_by},
+    )
+    return checkout
 
 
 def append_version_bytes(
