@@ -1,45 +1,63 @@
 # ForgeVault
 
-ForgeVault is an API-first, generic file/object Product Data Management (PDM) system for manufacturing teams that need version-controlled file management without assuming clean folder structures, clean file names, or perfect CAD metadata.
+ForgeVault is an open-source manufacturing file vault and lightweight PDM backbone for shops that need control over drawings, CAD files, revisions, work instructions, releases, and customer documents without buying into a bloated enterprise vault.
 
-ForgeVault treats SolidWorks files, neutral CAD (STEP/DXF/etc.), PDFs, work instructions, customer documents, images, spreadsheets, and arbitrary legacy files as first-class managed objects. CAD-specific intelligence is delivered through plugins instead of hard-coded product assumptions.
+It is built for real manufacturing file chaos: old job folders, inconsistent names, mixed CAD formats, PDFs, DXFs, STEP files, spreadsheets, inspection documents, customer uploads, screenshots, and tribal-knowledge folder structures that somehow became production-critical.
 
-## What the backbone provides
+ForgeVault does not assume perfect metadata, perfect file names, or one blessed CAD platform. It stores files as managed objects, preserves source paths, tracks versions, supports customer/internal revision mapping, and leaves CAD-specific intelligence to plugins.
 
-* FastAPI backend package under `backend/forgevault`.
-* PostgreSQL-first schema represented by SQLAlchemy models and an Alembic migration.
-* Core persisted tables: `users`, `roles`, `records`, `customer_identity_mappings`, `metadata_field_definitions`, `file_objects`, `file_versions`, `checkouts`, `lifecycle_states`, `release_packages`, `release_package_items`, `dependencies`, `plugin_executions`, `audit_log`, and `ingest_jobs`.
-* Append-only file versioning: check-ins create new `file_versions` rows and never overwrite prior history.
-* SHA-256 content-addressed file objects using the local vault storage adapter.
-* Original source paths preserved for arbitrary-depth legacy and junk-drawer structures.
-* Dual traceability: immutable internal record ID plus customer part/revision and internal revision mapping rows.
-* Generic plugin architecture for parser plugins, customer naming plugins, and release package generators.
-* Built-in functional plugins for generic files, neutral CAD/dependency extraction, document metadata, regex-based customer identity derivation, and immutable release manifest generation.
-* Release package creation through lifecycle transition, with unresolved dependencies blocking release.
-* REST APIs for ingestion, folder indexing, metadata records, checkout/versioning, lifecycle, dependencies, where-used, indexed search, metadata fields, plugin execution audit, and JobBOSS² release-package export.
-* Tests that execute the API, persisted plugin runs, dependency blocking, derived naming, content-addressed storage, and immutable release manifests.
+## What it does
+
+- Indexes folders and turns loose files into searchable managed records.
+- Preserves original source paths so legacy folder structures are not destroyed.
+- Stores file objects by SHA-256 hash using content-addressed vault storage.
+- Keeps file versions append-only so old revisions are not overwritten.
+- Tracks customer part/revision and internal revision identity separately.
+- Supports checkout, check-in, lifecycle state changes, dependencies, where-used, and release packages.
+- Blocks release when unresolved dependencies exist.
+- Provides plugin hooks for file parsing, naming rules, customer identity extraction, CAD/document metadata, and release package generation.
+- Includes a minimal browser UI and REST API so it can grow into a desktop, server, or shop-floor tool.
+- Includes a JobBOSS² release export path for manufacturing/ERP handoff experiments.
+
+## Why ForgeVault exists
+
+Most small and mid-size manufacturers do not have clean PDM. They have shared drives, old job folders, customer naming weirdness, revision confusion, and a lot of expensive knowledge hiding in file paths.
+
+ForgeVault is meant to sit between that mess and a real controlled system. It should help a shop start managing files without forcing a painful all-at-once migration.
+
+The goal is practical control first:
+
+- What file is this?
+- What revision is current?
+- Where did it come from?
+- What changed?
+- Who checked it out?
+- What depends on it?
+- Can this package be released?
+- What needs to go to ERP, purchasing, quality, or the floor?
 
 ## Repository layout
 
 ```text
 backend/forgevault/
   api/                 REST route modules
-  plugins/             plugin protocols, registry, and built-in parser/naming/release plugins
-  services/            ingestion, metadata, versioning, lifecycle, search, audit, plugin orchestration
-  storage/             local vault storage adapter
+  plugins/             plugin protocols, registry, and built-in plugins
+  services/            ingestion, metadata, versioning, lifecycle, search, audit, integrations
+  storage/             local content-addressed vault storage
   config.py            environment-driven settings
   database.py          SQLAlchemy engine/session/bootstrap
   models.py            SQLAlchemy schema backbone
   schemas.py           request/response schemas
 migrations/            Alembic environment and initial schema migration
 frontend/              minimal API-backed browser shell
-tests/                 runnable API and storage coverage
-docs/                  architecture and schema notes
+scripts/               Windows launch helpers
+docs/                  architecture, desktop launch, and schema notes
+tests/                 API and storage tests
 ```
 
-## Easiest Windows-friendly launch
+## Windows-friendly launch
 
-ForgeVault Desktop does **not** require a user-managed SQL Server. It starts a local web UI backed by an embedded SQLite database and a local content-addressed vault under your user profile.
+ForgeVault Desktop starts a local web UI backed by SQLite and a local content-addressed vault under your user profile. No user-managed SQL Server is required.
 
 ```powershell
 .\scripts\Launch-ForgeVault.ps1 --manage-folder "C:\Engineering\Jobs"
@@ -51,17 +69,21 @@ Or from `cmd.exe`:
 scripts\Launch-ForgeVault.bat --manage-folder "C:\Engineering\Jobs"
 ```
 
-The browser opens to ForgeVault. Point it at folders you want managed, click **Index Folder**, then search records and inspect previous versions. Files that do not match a customer naming rule are still ingested with a visible `UNMAPPED-*` identity so nothing is lost; those records are searchable and ready for cleanup/revision mapping.
+The browser opens to ForgeVault. Point it at a folder, index it, search records, inspect versions, and start cleaning up uncontrolled files without losing the original folder context.
 
-## One-command Docker launch
+## Docker launch
 
-For teams that prefer Postgres without a manual database install, Docker Compose starts the API and database together. Put folders to manage under `./managed-folders` or edit the bind mount in `docker-compose.yml`.
+For server-style testing with Postgres:
 
 ```bash
 docker compose up --build
 ```
 
-The API/UI will be available at `http://localhost:8000/ui`.
+The API/UI will be available at:
+
+```text
+http://localhost:8000/ui
+```
 
 ## Local development
 
@@ -72,7 +94,13 @@ alembic upgrade head
 uvicorn forgevault.main:app --reload --app-dir backend
 ```
 
-The API is available at `http://localhost:8000`, OpenAPI docs are at `http://localhost:8000/docs`, and the web UI is at `http://localhost:8000/ui`.
+Useful local URLs:
+
+```text
+API:      http://localhost:8000
+Docs:     http://localhost:8000/docs
+Web UI:   http://localhost:8000/ui
+```
 
 ## Example ingest request
 
@@ -81,7 +109,7 @@ curl -X POST http://localhost:8000/api/v1/ingest \
   -H 'Content-Type: application/json' \
   -d '{
     "filename": "bracket.step",
-    "original_source_path": "legacy/junk drawer/customer A/bracket.step",
+    "original_source_path": "legacy/customer-a/old-job-folder/bracket.step",
     "content_base64": "SVNPLTEwMzAzLTIxOw==",
     "customer_part_number": "CUST-42",
     "customer_revision": "A",
@@ -92,22 +120,21 @@ curl -X POST http://localhost:8000/api/v1/ingest \
   }'
 ```
 
-If a customer-specific naming plugin can derive customer part/revision from the filename or path, `customer_part_number` and `customer_revision` may be omitted on ingest. `internal_revision` remains required because internal revision policy is controlled by ForgeVault workflows.
+If a naming plugin can derive customer part/revision from the filename or path, `customer_part_number` and `customer_revision` can be omitted. Internal revision remains controlled by ForgeVault workflow policy.
 
-## Safety rules encoded in the backbone
+## Core safety rules
 
-* File hashes are required before a `file_objects` row is created.
-* File versions are append-only and linked by `previous_version_id`.
-* Customer and internal revision identifiers are stored together on records, mappings, and versions.
-* Metadata fields discovered during ingest are persisted in `metadata_field_definitions` for search/index governance.
-* Plugin runs are persisted in `plugin_executions` so parser, naming, and release package outputs are auditable.
-* Release packages are immutable snapshots tied to exact file version rows and hashes.
-* A release transition fails when the record has unresolved dependencies.
-* Search endpoints query indexed metadata and version tables; they do not crawl the filesystem.
+- File hashes are required before file objects are created.
+- File versions are append-only and linked to previous versions.
+- Release packages are immutable snapshots tied to exact file version rows and hashes.
+- Customer revision, internal revision, and original source path are preserved.
+- Plugin executions are recorded so parser, naming, and release outputs are auditable.
+- Search uses indexed metadata and version tables instead of repeatedly crawling the filesystem.
+- Release transitions fail when unresolved dependencies exist.
 
-## JobBOSS² progress
+## JobBOSS² integration path
 
-ForgeVault now has a working JobBOSS² export path for released packages. The release export endpoint writes a durable JSON payload into the configured outbox (`FORGEVAULT_JOBBOSS2_OUTBOX_ROOT`) and records the handoff in `integration_events`. If `FORGEVAULT_JOBBOSS2_WEBHOOK_URL` is configured, the same payload can be posted to an integration gateway instead of only writing the outbox file. This keeps ForgeVault useful for both cloud and on-prem JobBOSS² environments while avoiding hard-coded ERP assumptions.
+ForgeVault includes an early JobBOSS² export path for released packages. The release export endpoint writes a durable JSON payload into the configured outbox and records the handoff in integration events.
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/integrations/jobboss2/release-packages/<release_package_id>/export \
@@ -115,9 +142,13 @@ curl -X POST http://localhost:8000/api/v1/integrations/jobboss2/release-packages
   -d '{"actor":"alice","mode":"outbox"}'
 ```
 
-## GUI direction
+This is intentionally structured as an integration handoff instead of hard-coding ERP assumptions into the vault.
 
-The bundled UI is intentionally dark-mode only: matte black panels, gray borders, orange action buttons, and red reserved for errors. The first-run workflow is: launch, point to a folder, index, search, inspect previous versions, check out/check in, and release. No legacy-vault install wizard, no manual SQL Server setup, and no neon clutter.
+## Current status
+
+ForgeVault is in early backbone/prototype stage. The repo currently includes the backend schema, API routes, storage/versioning services, plugin structure, migration, minimal UI, launch scripts, Docker setup, and automated tests.
+
+It is not production-ready yet. The next work should focus on installer polish, UI workflow, file preview, permissions, better folder indexing feedback, release package UX, and real-world testing against ugly manufacturing folders.
 
 ## Test
 
