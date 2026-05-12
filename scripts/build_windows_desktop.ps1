@@ -34,7 +34,39 @@ if (-not (Test-Path $artifact)) {
     throw "Build failed. Missing $artifact"
 }
 
+$package = Join-Path $repo "dist\ForgeVaultDesktop-windows"
+New-Item -ItemType Directory -Force -Path $package | Out-Null
+Copy-Item $artifact (Join-Path $package "ForgeVaultDesktop.exe") -Force
+Copy-Item $artifact (Join-Path $package "START-FORGEVAULT.exe") -Force
+
+@"
+ForgeVault Desktop - Quick Start
+
+1. Double-click START-FORGEVAULT.exe.
+2. Your browser should open automatically.
+3. In the left panel, click Browse for Source Folder or paste a folder path.
+4. Click Add Source Folder.
+5. Click Index Selected.
+6. Search UNMAPPED to find files that need cleanup.
+
+Safe rule:
+ForgeVault indexes files and copies managed versions into its local vault. Removing a source folder from the UI removes it from the ForgeVault index only. It does not delete your real files.
+
+Default local URL:
+http://127.0.0.1:8765/ui
+
+Default data folder:
+%LOCALAPPDATA%\ForgeVault
+"@ | Set-Content -Encoding UTF8 (Join-Path $package "START-HERE.txt")
+
+@"
+@echo off
+cd /d "%~dp0"
+start "" "%~dp0START-FORGEVAULT.exe"
+"@ | Set-Content -Encoding ASCII (Join-Path $package "START-FORGEVAULT.bat")
+
 Write-Host ""
 Write-Host "Build complete: $artifact"
+Write-Host "Packaged folder: $package"
 Write-Host "Run it with:"
-Write-Host "  .\dist\ForgeVaultDesktop.exe"
+Write-Host "  .\dist\ForgeVaultDesktop-windows\START-FORGEVAULT.exe"
