@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="ForgeVault icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#222a34"/>
+      <stop offset="1" stop-color="#070a0d"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff9d3d"/>
+      <stop offset="1" stop-color="#a94f16"/>
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" rx="34" fill="url(#bg)" stroke="#3b4654" stroke-width="6"/>
+  <path d="M70 74 L128 42 L186 74 L128 106 Z" fill="url(#orange)"/>
+  <path d="M70 114 L128 82 L186 114 L128 146 Z" fill="#c86822"/>
+  <path d="M70 154 L128 122 L186 154 L128 186 Z" fill="#743813"/>
+  <path d="M70 74 L70 154 L128 186 L128 106 Z" fill="#151c24" opacity="0.58"/>
+  <path d="M186 74 L186 154 L128 186 L128 106 Z" fill="#0d1218" opacity="0.48"/>
+  <path d="M64 206 H192" stroke="#f08a2b" stroke-width="10" stroke-linecap="round" opacity="0.92"/>
+  <path d="M88 218 H168" stroke="#596575" stroke-width="6" stroke-linecap="round" opacity="0.82"/>
+</svg>
