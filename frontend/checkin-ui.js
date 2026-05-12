@@ -21,9 +21,35 @@
     el.className = error ? 'footer error' : 'footer';
   }
 
+  function detailMetaValue(label) {
+    const meta = document.querySelector('#detail .meta');
+    if (!meta) return '';
+    const cells = Array.from(meta.children);
+    for (let i = 0; i < cells.length - 1; i += 2) {
+      if (cells[i].textContent.trim() === label) return cells[i + 1].textContent.trim();
+    }
+    return '';
+  }
+
   function selectedRecordFromPage() {
-    if (!window.state || typeof window.selectedRecord !== 'function') return null;
-    return window.selectedRecord();
+    const recordId = detailMetaValue('Record ID');
+    if (!recordId) return null;
+    const heading = document.querySelector('#detail h2')?.textContent?.trim() || recordId;
+    return {
+      record: {
+        internal_record_id: recordId,
+        customer_revision: emptyDashToBlank(detailMetaValue('Customer Rev')),
+        internal_revision: emptyDashToBlank(detailMetaValue('Internal Rev')),
+      },
+      latest_version: {
+        filename: heading,
+        original_source_path: emptyDashToBlank(detailMetaValue('Source Path')),
+      },
+    };
+  }
+
+  function emptyDashToBlank(value) {
+    return value === '-' ? '' : value;
   }
 
   function selectedVersion(item) {
@@ -145,8 +171,8 @@
       });
       closeModal();
       setStatus(`Checked in v${result.file_version.version_number}: ${result.file_version.filename}`);
-      if (typeof window.search === 'function') await window.search();
-      if (typeof window.showReviews === 'function' && result.review) await window.showReviews();
+      document.querySelector('#refresh')?.click();
+      if (result.review) document.querySelector('#show-reviews')?.click();
     } catch (e) {
       setStatus(e.message, true);
     }
