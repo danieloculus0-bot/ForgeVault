@@ -104,6 +104,47 @@ class RuntimeConfigRead(BaseModel):
     auto_create_schema: bool
 
 
+class SetupStatusRead(BaseModel):
+    mode: str
+    ready: bool
+    source_folder_count: int
+    needs_source_folder: bool
+    message: str
+
+
+class SourceFolderCreate(BaseModel):
+    path: str
+    display_name: str | None = None
+    actor: str = "desktop"
+    recursive: bool = True
+    include_hidden: bool = False
+
+
+class SourceFolderRead(BaseModel):
+    id: UUID
+    path: str
+    display_name: str
+    is_active: bool
+    recursive: bool
+    include_hidden: bool
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    last_indexed_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class SourceFolderRemove(BaseModel):
+    actor: str = "desktop"
+    confirm_remove_from_index_only: bool = True
+
+
+class SourceFolderIndexRequest(BaseModel):
+    actor: str = "desktop"
+    max_files: int = Field(default=2000, ge=1, le=50000)
+
+
 class LifecycleMove(BaseModel):
     to_state: str
     actor: str
