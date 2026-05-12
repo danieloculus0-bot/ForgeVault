@@ -6,10 +6,8 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from ..file_types import IGNORED_DIRS, is_ignored_file, file_type_metadata
 from .ingestion import ingest_file
-
-IGNORED_DIRS = {".git", ".svn", "__pycache__", "node_modules", ".venv", "venv"}
-IGNORED_SUFFIXES = {".tmp", ".bak", ".swp", ".lock"}
 
 
 def iter_managed_files(root: Path, *, recursive: bool, include_hidden: bool, max_files: int) -> list[Path]:
@@ -18,12 +16,11 @@ def iter_managed_files(root: Path, *, recursive: bool, include_hidden: bool, max
     pattern = "**/*" if recursive else "*"
     files: list[Path] = []
     for path in root.glob(pattern):
-        parts = set(path.parts)
         if not include_hidden and any(part.startswith(".") for part in path.relative_to(root).parts):
             continue
-        if parts & IGNORED_DIRS:
+        if set(path.parts) & IGNORED_DIRS:
             continue
-        if path.is_file() and path.suffix.lower() not in IGNORED_SUFFIXES:
+        if path.is_file() and not is_ignored_file(path):
             files.append(path)
             if len(files) >= max_files:
                 break
@@ -60,7 +57,10 @@ def ingest_folder(
     for file_path in files:
         try:
             content = file_path.read_bytes()
-            metadata = {"folder_ingest": {"root": str(root), "relative_path": str(file_path.relative_to(root))}}
+            metadata = {
+                "folder_ingest": {"root": str(root), "relative_path": str(file_path.relative_to(root))},
+                "file_type": file_type_metadata(file_path),
+            }
             part_number = customer_part_number
             revision = customer_revision
             if not part_number or not revision:
