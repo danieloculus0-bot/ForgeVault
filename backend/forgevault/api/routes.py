@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from ..config import settings
 from ..database import get_session
 from ..models import Dependency, FileVersion, IngestJob, IntegrationEvent, MetadataFieldDefinition, PluginExecution, Record
 from ..schemas import (
+    CheckoutCancel,
     CheckoutCreate,
+    CheckoutStatusRead,
     DependencyCreate,
     FileVersionRead,
     IngestJobRead,
@@ -15,6 +18,7 @@ from ..schemas import (
     LifecycleMove,
     RecordCreate,
     RecordRead,
+    RuntimeConfigRead,
     SearchResult,
     MetadataFieldRead,
     PluginExecutionRead,
@@ -30,7 +34,7 @@ from ..services.integrations import export_release_package_to_jobboss2
 from ..services.lifecycle import transition_record
 from ..services.metadata import create_record
 from ..services.search import search_records
-from ..services.versioning import check_out
+from ..services.versioning import active_checkout, cancel_checkout, check_out
 
 router = APIRouter()
 
@@ -40,6 +44,25 @@ def get_record_by_internal_id(session: Session, internal_record_id: str) -> Reco
     if not record:
         raise HTTPException(status_code=404, detail="record not found")
     return record
+
+
+@router.get("/runtime/config", response_model=RuntimeConfigRead)
+def runtime_config():
+    database_url = settings.database_url
+    database_mode = "sqlite" if database_url.startswith("sqlite") else "server"
+    safe_database_url = database_url
+    if "@" in safe_database_url and "://" in safe_database_url:
+        prefix, rest = safe_database_url.split("://", 1)
+        if "@" in rest:
+            safe_database_url = f"{prefix}://***:***@{rest.split('@', 1)[1]}"
+    return RuntimeConfigRead(
+        database_url=safe_database_url,
+        database_mode=database_mode,
+        local_vault_root=settings.local_vault_root,
+        staging_root=settings.staging_root,
+        jobboss2_outbox_root=settings.jobboss2_outbox_root,
+        auto_create_schema=settings.auto_create_schema,
+    )
 
 
 @router.post("/records", response_model=RecordRead, status_code=status.HTTP_201_CREATED)
@@ -93,6 +116,13 @@ def get_ingest_job(job_id: UUID, session: Session = Depends(get_session)):
     return job
 
 
+@router.get("/records/{internal_record_id}/checkout", response_model=CheckoutStatusRead)
+def checkout_status(internal_record_id: str, session: Session = Depends(get_session)):
+    record = get_record_by_internal_id(session, internal_record_id)
+    checkout = active_checkout(session, record.id)
+    return CheckoutStatusRead(internal_record_id=record.internal_record_id, is_checked_out=checkout is not None, checkout=checkout)
+
+
 @router.post("/records/{internal_record_id}/checkout", status_code=status.HTTP_201_CREATED)
 def checkout_record(internal_record_id: str, payload: CheckoutCreate, session: Session = Depends(get_session)):
     record = get_record_by_internal_id(session, internal_record_id)
@@ -101,6 +131,19 @@ def checkout_record(internal_record_id: str, payload: CheckoutCreate, session: S
         session.commit()
         return {"checkout_id": str(checkout.id), "internal_record_id": record.internal_record_id, "checked_out_by": payload.actor}
     except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.delete("/records/{internal_record_id}/checkout")
+def cancel_record_checkout(internal_record_id: str, payload: CheckoutCancel, session: Session = Depends(get_session)):
+    record = get_record_by_internal_id(session, internal_record_id)
+    try:
+        checkout = cancel_checkout(session, record_id=record.id, actor=payload.actor, reason=payload.reason, force=payload.force)
+        session.commit()
+        return {"checkout_id": str(checkout.id), "internal_record_id": record.internal_record_id, "cancelled_by": payload.actor}
+    except ValueError as exc:
+        session.rollback()
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -117,6 +160,7 @@ def transition_lifecycle(internal_record_id: str, payload: LifecycleMove, sessio
             "package_number": package.package_number if package else None,
         }
     except ValueError as exc:
+        session.rollback()
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -180,7 +224,7 @@ def list_record_versions(internal_record_id: str, session: Session = Depends(get
 @router.post("/ingest-folder", response_model=FolderIngestRead)
 def ingest_folder(payload: FolderIngestRequest, session: Session = Depends(get_session)):
     try:
-        return run_folder_ingest(
+        result = run_folder_ingest(
             session,
             folder_path=payload.folder_path,
             actor=payload.actor,
@@ -191,7 +235,10 @@ def ingest_folder(payload: FolderIngestRequest, session: Session = Depends(get_s
             include_hidden=payload.include_hidden,
             max_files=payload.max_files,
         )
+        session.commit()
+        return result
     except ValueError as exc:
+        session.rollback()
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
