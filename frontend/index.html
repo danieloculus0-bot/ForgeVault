@@ -6,96 +6,52 @@
     <meta name="color-scheme" content="dark" />
     <title>ForgeVault Desktop</title>
     <style>
-      :root {
-        color-scheme: dark;
-        --bg: #0a0d10;
-        --panel: #111820;
-        --panel2: #151e27;
-        --panel3: #1b2631;
-        --line: #303b47;
-        --line2: #43505f;
-        --text: #e6ebf2;
-        --muted: #9aa7b6;
-        --muted2: #748293;
-        --accent: #f08a2b;
-        --accent2: #bb641f;
-        --danger: #b74a4a;
-      }
+      :root { color-scheme: dark; --bg:#0a0d10; --panel:#111820; --panel2:#151e27; --panel3:#1b2631; --line:#303b47; --line2:#43505f; --text:#e6ebf2; --muted:#9aa7b6; --muted2:#748293; --accent:#f08a2b; --accent2:#bb641f; --danger:#b74a4a; }
       * { box-sizing: border-box; }
       html, body { height: 100%; }
-      body {
-        margin: 0;
-        font-family: "Segoe UI", Roboto, system-ui, sans-serif;
-        background: var(--bg);
-        color: var(--text);
-        overflow: hidden;
-      }
-      .app { height: 100%; display: grid; grid-template-rows: 48px 1fr 28px; }
-      .topbar {
-        display: grid;
-        grid-template-columns: 210px 1fr auto;
-        gap: 12px;
-        align-items: center;
-        padding: 0 14px;
-        background: #0d1218;
-        border-bottom: 1px solid var(--line);
-      }
-      .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .02em; }
-      .mark { width: 22px; height: 22px; position: relative; }
+      body { margin:0; font-family:"Segoe UI", Roboto, system-ui, sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
+      .app { height:100%; display:grid; grid-template-rows:48px 1fr 28px; }
+      .topbar { display:grid; grid-template-columns:210px 1fr auto; gap:12px; align-items:center; padding:0 14px; background:#0d1218; border-bottom:1px solid var(--line); }
+      .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.02em; }
+      .mark { width:22px; height:22px; position:relative; }
       .mark:before, .mark:after, .mark span { content:""; position:absolute; left:2px; width:18px; height:8px; background:var(--accent); transform:skewY(-32deg); border-radius:1px; }
-      .mark:before { top:1px; opacity:.95; }
-      .mark span { top:8px; opacity:.72; }
-      .mark:after { top:15px; opacity:.46; }
-      .pathbar { color: var(--muted); border:1px solid var(--line); background:#080c10; border-radius:4px; padding:8px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .mark:before { top:1px; opacity:.95; } .mark span { top:8px; opacity:.72; } .mark:after { top:15px; opacity:.46; }
+      .pathbar { color:var(--muted); border:1px solid var(--line); background:#080c10; border-radius:4px; padding:8px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .actions { display:flex; gap:8px; align-items:center; }
-      button {
-        border: 1px solid var(--line2);
-        background: #202b36;
-        color: var(--text);
-        border-radius: 4px;
-        padding: 8px 12px;
-        cursor: pointer;
-        font-weight: 600;
-      }
-      button.primary { background: var(--accent); border-color: var(--accent2); color:#16100a; }
+      button { border:1px solid var(--line2); background:#202b36; color:var(--text); border-radius:4px; padding:8px 12px; cursor:pointer; font-weight:600; }
+      button.primary { background:var(--accent); border-color:var(--accent2); color:#16100a; }
       button.danger { background:#161a20; border-color:var(--danger); color:#e2b8b8; }
-      button:hover { filter: brightness(1.08); }
-      input {
-        width: 100%;
-        border: 1px solid var(--line);
-        background: #080c10;
-        color: var(--text);
-        border-radius: 4px;
-        padding: 8px 10px;
-        outline: none;
-      }
-      input:focus { border-color: var(--accent); }
-      .workspace { min-height: 0; display: grid; grid-template-columns: 280px 1fr 380px; }
-      .pane { min-height: 0; border-right: 1px solid var(--line); background: var(--panel); }
+      button.compact { padding:5px 8px; font-size:12px; }
+      button:disabled { opacity:.48; cursor:not-allowed; }
+      button:hover:not(:disabled) { filter:brightness(1.08); }
+      input { width:100%; border:1px solid var(--line); background:#080c10; color:var(--text); border-radius:4px; padding:8px 10px; outline:none; }
+      input:focus { border-color:var(--accent); }
+      label { display:grid; gap:5px; color:var(--muted); font-size:12px; }
+      .workspace { min-height:0; display:grid; grid-template-columns:310px 1fr 390px; }
+      .pane { min-height:0; border-right:1px solid var(--line); background:var(--panel); }
       .pane.right { border-right:0; border-left:1px solid var(--line); }
-      .pane-title { height: 38px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid var(--line); color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
-      .pane-body { height: calc(100% - 38px); overflow:auto; padding: 10px; }
-      .folder-input { display:grid; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:10px; }
-      .tree { font-size: 13px; }
-      .tree-row { padding: 6px 8px; border-radius:4px; color:var(--muted); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      .tree-row.active, .tree-row:hover { background:#202b36; color:var(--text); outline:1px solid #344353; }
-      .tree-row.child { padding-left:22px; }
-      .main { min-width: 0; background:#0d1218; display:grid; grid-template-rows: 54px 1fr; }
-      .searchbar { display:grid; grid-template-columns: 1fr auto auto; gap:8px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); background:#101720; }
+      .pane-title { height:38px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid var(--line); color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+      .pane-body { height:calc(100% - 38px); overflow:auto; padding:10px; }
+      .source-box { display:grid; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:10px; }
+      .setup-card { border:1px solid var(--line); background:#0d1319; border-radius:6px; padding:10px; color:var(--muted); font-size:13px; line-height:1.35; }
+      .source-row { display:grid; gap:3px; padding:8px; border:1px solid transparent; border-radius:5px; color:var(--muted); cursor:pointer; }
+      .source-row.active, .source-row:hover { background:#202b36; color:var(--text); border-color:#344353; }
+      .source-title { font-weight:700; color:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .source-path { font-size:12px; color:var(--muted2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .source-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+      .main { min-width:0; background:#0d1218; display:grid; grid-template-rows:54px 1fr; }
+      .searchbar { display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); background:#101720; }
       table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
       thead { position:sticky; top:0; background:#1b2631; z-index:1; }
       th, td { border-bottom:1px solid #202a35; padding:8px 10px; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       th { color:var(--muted); font-weight:600; }
-      tbody tr { cursor:pointer; }
-      tbody tr:hover, tbody tr.selected { background:#1b2631; }
-      .name { color:var(--text); font-weight:600; }
-      .muted { color:var(--muted); }
+      tbody tr { cursor:pointer; } tbody tr:hover, tbody tr.selected { background:#1b2631; }
+      .name { color:var(--text); font-weight:600; } .muted { color:var(--muted); }
       .pill { display:inline-block; border:1px solid var(--line2); border-radius:999px; padding:2px 8px; color:var(--muted); background:#121a22; font-size:12px; }
-      .preview { height: 220px; display:grid; place-items:center; background:#080c10; border:1px solid var(--line); border-radius:6px; margin-bottom:12px; }
+      .preview { height:220px; display:grid; place-items:center; background:#080c10; border:1px solid var(--line); border-radius:6px; margin-bottom:12px; }
       .preview-card { text-align:center; color:var(--muted); }
       .preview-icon { width:92px; height:112px; margin:0 auto 12px; border:1px solid var(--line2); border-radius:6px; background:linear-gradient(180deg,#202a35,#111820); display:grid; place-items:center; font-size:22px; font-weight:800; color:var(--accent); }
-      .detail h2 { margin:0 0 4px; font-size:20px; }
-      .detail .sub { color:var(--muted); margin-bottom:12px; }
+      .detail h2 { margin:0 0 4px; font-size:20px; } .detail .sub { color:var(--muted); margin-bottom:12px; }
       .meta { display:grid; grid-template-columns:120px 1fr; gap:6px 10px; font-size:13px; margin:12px 0; }
       .meta div:nth-child(odd) { color:var(--muted); }
       .button-row { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
@@ -103,28 +59,30 @@
       .version-row { display:grid; grid-template-columns:46px 1fr; gap:8px; padding:7px 0; border-bottom:1px solid #202a35; font-size:13px; }
       .footer { display:flex; align-items:center; padding:0 10px; background:#090d11; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
       .error { color:#df9c9c; }
-      @media (max-width: 1100px) { .workspace { grid-template-columns:240px 1fr; } .pane.right { display:none; } }
+      @media (max-width:1100px) { .workspace { grid-template-columns:260px 1fr; } .pane.right { display:none; } }
     </style>
   </head>
   <body>
     <div class="app">
       <div class="topbar">
         <div class="brand"><div class="mark"><span></span></div><div>ForgeVault</div></div>
-        <div id="pathbar" class="pathbar">No folder indexed yet</div>
-        <div class="actions"><button id="health">Health</button><button id="index-top" class="primary">Index Folder</button></div>
+        <div id="pathbar" class="pathbar">Local Vault starting...</div>
+        <div class="actions"><button id="health">Health</button><button id="index-top" class="primary">Index Selected</button></div>
       </div>
 
       <div class="workspace">
         <aside class="pane">
-          <div class="pane-title"><span>Folders</span></div>
+          <div class="pane-title"><span>Source Folders</span></div>
           <div class="pane-body">
-            <div class="folder-input">
-              <input id="folder" placeholder="C:\\Engineering\\Jobs" />
-              <input id="actor" value="desktop" title="User" />
-              <input id="internal_revision" value="001" title="Internal revision" />
-              <button id="ingest-folder" class="primary">Index Selected Folder</button>
+            <div id="setup" class="setup-card">Checking setup...</div>
+            <div class="source-box">
+              <label>Folder path<input id="folder" placeholder="P:\\Blue Prints or C:\\Engineering\\Jobs" /></label>
+              <label>Display name<input id="display_name" placeholder="Optional, example: Blue Prints" /></label>
+              <label>User<input id="actor" value="desktop" /></label>
+              <button id="add-source" class="primary">Add Source Folder</button>
             </div>
-            <div id="tree" class="tree"><div class="tree-row active">No indexed folders</div></div>
+            <div id="sources"><div class="source-row active"><div class="source-title">No source folders yet</div><div class="source-path">Add one to start indexing.</div></div></div>
+            <div class="source-actions"><button id="index-source">Index Selected</button><button id="remove-source" class="danger">Remove From Index</button></div>
           </div>
         </aside>
 
@@ -137,7 +95,7 @@
           <div class="pane-body" style="padding:0;">
             <table>
               <thead><tr><th style="width:34%">Name</th><th style="width:18%">Part / Identity</th><th style="width:8%">Rev</th><th style="width:10%">Type</th><th style="width:12%">State</th><th style="width:18%">Source Path</th></tr></thead>
-              <tbody id="records"><tr><td colspan="6" class="muted">Index a folder or search to begin.</td></tr></tbody>
+              <tbody id="records"><tr><td colspan="6" class="muted">Add a source folder, then index it.</td></tr></tbody>
             </table>
           </div>
         </main>
@@ -156,148 +114,136 @@
 
     <script>
       const params = new URLSearchParams(location.search);
-      const state = { records: [], selected: null, lastQuery: 'UNMAPPED' };
+      const state = { records: [], sourceFolders: [], selectedSourceId: null, selectedRecordIndex: null, lastQuery: 'UNMAPPED' };
       if (params.get('folder')) document.querySelector('#folder').value = params.get('folder');
 
-      function setStatus(message, error=false) {
-        const el = document.querySelector('#status');
-        el.textContent = message;
-        el.className = error ? 'footer error' : 'footer';
+      function setStatus(message, error=false) { const el = document.querySelector('#status'); el.textContent = message; el.className = error ? 'footer error' : 'footer'; }
+      function esc(value='') { return String(value).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+      async function jsonFetch(url, options) { const response = await fetch(url, options); const data = await response.json(); if (!response.ok) throw new Error(data.detail || JSON.stringify(data)); return data; }
+      function ext(name='') { const parts = name.split('.'); return parts.length > 1 ? parts.pop().toUpperCase() : 'FILE'; }
+      function shortPath(path='') { return path.replaceAll('\\\\', '\\').split(/[\\/]/).slice(-3).join(' / '); }
+      function actor() { return document.querySelector('#actor').value || 'desktop'; }
+      function selectedSource() { return state.sourceFolders.find(f => f.id === state.selectedSourceId) || null; }
+
+      async function loadSetup() {
+        try {
+          const setup = await jsonFetch('/api/v1/setup/status');
+          document.querySelector('#setup').innerHTML = `<strong>${esc(setup.ready ? 'Local Vault Ready' : 'Setup Needed')}</strong><br>${esc(setup.message)}<br><span class="muted">${setup.source_folder_count} source folder(s) configured.</span>`;
+          await loadSourceFolders();
+        } catch (e) { setStatus(e.message, true); document.querySelector('#setup').textContent = 'Setup check failed.'; }
       }
 
-      async function jsonFetch(url, options) {
-        const response = await fetch(url, options);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.detail || JSON.stringify(data));
-        return data;
+      async function loadSourceFolders() {
+        const folders = await jsonFetch('/api/v1/source-folders');
+        state.sourceFolders = folders;
+        if (!state.selectedSourceId && folders.length) state.selectedSourceId = folders[0].id;
+        if (state.selectedSourceId && !folders.some(f => f.id === state.selectedSourceId)) state.selectedSourceId = folders[0]?.id || null;
+        renderSourceFolders();
       }
 
-      function ext(name='') {
-        const parts = name.split('.');
-        return parts.length > 1 ? parts.pop().toUpperCase() : 'FILE';
-      }
-
-      function shortPath(path='') {
-        return path.replaceAll('\\\\', '\\').split(/[\\/]/).slice(-3).join(' / ');
-      }
-
-      function buildTree() {
-        const tree = document.querySelector('#tree');
-        const roots = new Map();
-        for (const item of state.records) {
-          const path = item.latest_version?.original_source_path || '';
-          const parts = path.split(/[\\/]/).filter(Boolean);
-          if (!parts.length) continue;
-          const root = parts.length > 1 ? parts[parts.length - 2] : parts[0];
-          roots.set(root, (roots.get(root) || 0) + 1);
+      function renderSourceFolders() {
+        const el = document.querySelector('#sources');
+        if (!state.sourceFolders.length) {
+          el.innerHTML = '<div class="source-row active"><div class="source-title">No source folders yet</div><div class="source-path">Add one to start indexing.</div></div>';
+          document.querySelector('#pathbar').textContent = 'No source folder configured yet';
+          return;
         }
-        if (!roots.size) { tree.innerHTML = '<div class="tree-row active">No indexed folders</div>'; return; }
-        tree.innerHTML = [...roots.entries()].sort().map(([name, count], index) => `<div class="tree-row ${index === 0 ? 'active' : ''}">▸ ${name} <span class="muted">${count}</span></div>`).join('');
+        el.innerHTML = state.sourceFolders.map(f => `<div class="source-row ${f.id === state.selectedSourceId ? 'active' : ''}" data-id="${f.id}"><div class="source-title">${esc(f.display_name)}</div><div class="source-path" title="${esc(f.path)}">${esc(f.path)}</div><div class="source-path">${f.recursive ? 'Recursive' : 'Top folder only'} · ${f.last_indexed_at ? 'Last indexed ' + new Date(f.last_indexed_at).toLocaleString() : 'Not indexed yet'}</div></div>`).join('');
+        el.querySelectorAll('.source-row[data-id]').forEach(row => row.addEventListener('click', () => { state.selectedSourceId = row.dataset.id; renderSourceFolders(); }));
+        const selected = selectedSource();
+        document.querySelector('#pathbar').textContent = selected ? selected.path : 'No source folder selected';
+      }
+
+      async function addSourceFolder() {
+        try {
+          const path = document.querySelector('#folder').value.trim();
+          if (!path) throw new Error('Enter a folder path first.');
+          setStatus('Adding source folder...');
+          const folder = await jsonFetch('/api/v1/source-folders', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path, display_name: document.querySelector('#display_name').value || null, actor: actor(), recursive: true, include_hidden: false }) });
+          state.selectedSourceId = folder.id;
+          document.querySelector('#folder').value = '';
+          document.querySelector('#display_name').value = '';
+          await loadSetup();
+          setStatus(`Source folder added: ${folder.display_name}`);
+        } catch (e) { setStatus(e.message, true); }
+      }
+
+      async function removeSelectedSourceFolder() {
+        try {
+          const folder = selectedSource();
+          if (!folder) throw new Error('Select a source folder first.');
+          const ok = confirm(`Remove this folder from the ForgeVault index?\n\n${folder.path}\n\nThis will NOT delete files from disk.`);
+          if (!ok) return;
+          await jsonFetch(`/api/v1/source-folders/${folder.id}`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ actor: actor(), confirm_remove_from_index_only: true }) });
+          state.selectedSourceId = null;
+          await loadSetup();
+          setStatus('Source folder removed from index. No files were deleted.');
+        } catch (e) { setStatus(e.message, true); }
+      }
+
+      async function indexSelectedSourceFolder() {
+        try {
+          const folder = selectedSource();
+          if (!folder) throw new Error('Select a source folder first.');
+          setStatus(`Indexing ${folder.display_name}...`);
+          const result = await jsonFetch(`/api/v1/source-folders/${folder.id}/index`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ actor: actor(), max_files: 2000 }) });
+          setStatus(`Index complete. Scanned ${result.scanned}; ingested ${result.ingested}; failed ${result.failed}.`);
+          document.querySelector('#q').value = 'UNMAPPED';
+          await loadSetup();
+          await search();
+        } catch (e) { setStatus(e.message, true); }
       }
 
       function renderTable() {
         const tbody = document.querySelector('#records');
         if (!state.records.length) {
           tbody.innerHTML = '<tr><td colspan="6" class="muted">No records found.</td></tr>';
-          buildTree();
           renderDetail(null);
           return;
         }
         tbody.innerHTML = state.records.map((item, index) => {
-          const r = item.record;
-          const v = item.latest_version;
-          const name = v?.filename || '(no file version)';
-          const identity = r.customer_part_number || r.internal_record_id;
-          const rev = r.customer_revision || r.internal_revision || '';
-          const type = ext(name);
-          const source = v?.original_source_path || '';
-          return `<tr data-index="${index}" class="${state.selected === index ? 'selected' : ''}"><td class="name">${name}</td><td>${identity}</td><td>${rev}</td><td>${type}</td><td><span class="pill">Indexed</span></td><td title="${source}">${shortPath(source)}</td></tr>`;
+          const r = item.record; const v = item.latest_version; const name = v?.filename || '(no file version)';
+          const identity = r.customer_part_number || r.internal_record_id; const rev = r.customer_revision || r.internal_revision || ''; const source = v?.original_source_path || '';
+          return `<tr data-index="${index}" class="${state.selectedRecordIndex === index ? 'selected' : ''}"><td class="name">${esc(name)}</td><td>${esc(identity)}</td><td>${esc(rev)}</td><td>${esc(ext(name))}</td><td><span class="pill">Indexed</span></td><td title="${esc(source)}">${esc(shortPath(source))}</td></tr>`;
         }).join('');
         tbody.querySelectorAll('tr[data-index]').forEach(row => row.addEventListener('click', () => selectRecord(Number(row.dataset.index))));
-        buildTree();
-        if (state.selected === null) selectRecord(0); else renderDetail(state.records[state.selected]);
+        if (state.selectedRecordIndex === null) selectRecord(0); else renderDetail(state.records[state.selectedRecordIndex]);
       }
 
-      async function selectRecord(index) {
-        state.selected = index;
-        document.querySelectorAll('#records tr').forEach(row => row.classList.remove('selected'));
-        const row = document.querySelector(`#records tr[data-index="${index}"]`);
-        if (row) row.classList.add('selected');
-        await renderDetail(state.records[index]);
-      }
+      async function selectRecord(index) { state.selectedRecordIndex = index; document.querySelectorAll('#records tr').forEach(row => row.classList.remove('selected')); const row = document.querySelector(`#records tr[data-index="${index}"]`); if (row) row.classList.add('selected'); await renderDetail(state.records[index]); }
 
       async function renderDetail(item) {
         const el = document.querySelector('#detail');
-        if (!item) {
-          el.innerHTML = '<div class="preview"><div class="preview-card"><div class="preview-icon">FV</div><div>Select a file or record</div></div></div><p class="muted">Preview, metadata, versions, checkout state, dependencies, and release actions appear here.</p>';
-          return;
-        }
-        const r = item.record;
-        const v = item.latest_version;
-        const name = v?.filename || '(no file version)';
-        const type = ext(name);
-        el.innerHTML = `
-          <div class="preview"><div class="preview-card"><div class="preview-icon">${type.slice(0,4)}</div><div>${name}</div><div class="muted">Preview placeholder</div></div></div>
-          <h2>${name}</h2>
-          <div class="sub">${r.customer_part_number || 'Unmapped'} · ${r.internal_record_id}</div>
-          <div class="button-row"><button id="checkout-btn">Check Out</button><button class="primary">Check In New Version</button><button>Release</button><button class="danger">Cancel Checkout</button></div>
-          <div class="meta"><div>Customer Rev</div><div>${r.customer_revision || '-'}</div><div>Internal Rev</div><div>${r.internal_revision || '-'}</div><div>Source Path</div><div title="${v?.original_source_path || ''}">${v?.original_source_path || '-'}</div><div>Record ID</div><div>${r.internal_record_id}</div></div>
-          <div class="versions"><div class="muted">Loading version history…</div></div>`;
+        if (!item) { el.innerHTML = '<div class="preview"><div class="preview-card"><div class="preview-icon">FV</div><div>Select a file or record</div></div></div><p class="muted">Preview, metadata, versions, checkout state, dependencies, and release actions appear here.</p>'; return; }
+        const r = item.record; const v = item.latest_version; const name = v?.filename || '(no file version)'; const type = ext(name);
+        let checkoutText = 'Checking checkout status...';
+        try { const status = await jsonFetch(`/api/v1/records/${encodeURIComponent(r.internal_record_id)}/checkout`); checkoutText = status.is_checked_out ? `Checked out by ${status.checkout.checked_out_by}` : 'Available for checkout'; } catch (e) { checkoutText = e.message; }
+        el.innerHTML = `<div class="preview"><div class="preview-card"><div class="preview-icon">${esc(type.slice(0,4))}</div><div>${esc(name)}</div><div class="muted">Preview placeholder</div></div></div><h2>${esc(name)}</h2><div class="sub">${esc(r.customer_part_number || 'Unmapped')} · ${esc(r.internal_record_id)}</div><div class="pill">${esc(checkoutText)}</div><div class="button-row"><button id="checkout-btn">Check Out</button><button class="primary">Check In New Version</button><button>Release</button><button id="cancel-checkout-btn" class="danger">Cancel Checkout</button></div><div class="meta"><div>Customer Rev</div><div>${esc(r.customer_revision || '-')}</div><div>Internal Rev</div><div>${esc(r.internal_revision || '-')}</div><div>Source Path</div><div title="${esc(v?.original_source_path || '')}">${esc(v?.original_source_path || '-')}</div><div>Record ID</div><div>${esc(r.internal_record_id)}</div></div><div class="versions"><div class="muted">Loading version history...</div></div>`;
         document.querySelector('#checkout-btn').addEventListener('click', async () => checkoutRecord(r.internal_record_id));
-        try {
-          const versions = await jsonFetch(`/api/v1/records/${encodeURIComponent(r.internal_record_id)}/versions`);
-          el.querySelector('.versions').innerHTML = '<strong>Version History</strong>' + versions.map(ver => `<div class="version-row"><div>v${ver.version_number}</div><div><div>${ver.filename}</div><div class="muted">${ver.original_source_path}</div></div></div>`).join('');
-        } catch (e) {
-          el.querySelector('.versions').innerHTML = `<span class="error">${e.message}</span>`;
-        }
+        document.querySelector('#cancel-checkout-btn').addEventListener('click', async () => cancelCheckout(r.internal_record_id));
+        try { const versions = await jsonFetch(`/api/v1/records/${encodeURIComponent(r.internal_record_id)}/versions`); el.querySelector('.versions').innerHTML = '<strong>Version History</strong>' + versions.map(ver => `<div class="version-row"><div>v${ver.version_number}</div><div><div>${esc(ver.filename)}</div><div class="muted">${esc(ver.original_source_path)}</div></div></div>`).join(''); } catch (e) { el.querySelector('.versions').innerHTML = `<span class="error">${esc(e.message)}</span>`; }
       }
 
       async function search() {
-        try {
-          const q = document.querySelector('#q').value || state.lastQuery || 'UNMAPPED';
-          state.lastQuery = q;
-          setStatus('Searching vault...');
-          const data = await jsonFetch(`/api/v1/search?q=${encodeURIComponent(q)}`);
-          state.records = data;
-          state.selected = null;
-          renderTable();
-          setStatus(`${data.length} record(s) loaded.`);
-        } catch (e) { setStatus(e.message, true); }
-      }
-
-      async function ingestFolder() {
-        try {
-          const folder = document.querySelector('#folder').value;
-          document.querySelector('#pathbar').textContent = folder || 'No folder selected';
-          setStatus('Indexing folder...');
-          const payload = {
-            folder_path: folder,
-            actor: document.querySelector('#actor').value || 'desktop',
-            internal_revision: document.querySelector('#internal_revision').value || '001',
-            customer_part_number: null,
-            customer_revision: null,
-            recursive: true
-          };
-          const result = await jsonFetch('/api/v1/ingest-folder', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-          setStatus(`Index complete. Scanned ${result.scanned}; ingested ${result.ingested}; failed ${result.failed}.`);
-          document.querySelector('#q').value = 'UNMAPPED';
-          await search();
-        } catch (e) { setStatus(e.message, true); }
+        try { const q = document.querySelector('#q').value || state.lastQuery || 'UNMAPPED'; state.lastQuery = q; setStatus('Searching vault...'); const data = await jsonFetch(`/api/v1/search?q=${encodeURIComponent(q)}`); state.records = data; state.selectedRecordIndex = null; renderTable(); setStatus(`${data.length} record(s) loaded.`); } catch (e) { setStatus(e.message, true); }
       }
 
       async function checkoutRecord(internalId) {
-        try {
-          const actor = document.querySelector('#actor').value || 'desktop';
-          await jsonFetch(`/api/v1/records/${encodeURIComponent(internalId)}/checkout`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ actor, reason:'UI checkout' }) });
-          setStatus(`${internalId} checked out by ${actor}.`);
-        } catch (e) { setStatus(e.message, true); }
+        try { await jsonFetch(`/api/v1/records/${encodeURIComponent(internalId)}/checkout`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ actor: actor(), reason:'UI checkout' }) }); setStatus(`${internalId} checked out by ${actor()}.`); await renderDetail(state.records[state.selectedRecordIndex]); } catch (e) { setStatus(e.message, true); }
+      }
+
+      async function cancelCheckout(internalId) {
+        try { const ok = confirm(`Cancel checkout for ${internalId}?\n\nThis does not delete files. It only releases the checkout lock.`); if (!ok) return; await jsonFetch(`/api/v1/records/${encodeURIComponent(internalId)}/checkout`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ actor: actor(), reason:'UI cancel checkout', force:false }) }); setStatus(`${internalId} checkout cancelled.`); await renderDetail(state.records[state.selectedRecordIndex]); } catch (e) { setStatus(e.message, true); }
       }
 
       document.querySelector('#search').addEventListener('click', search);
       document.querySelector('#refresh').addEventListener('click', search);
-      document.querySelector('#ingest-folder').addEventListener('click', ingestFolder);
-      document.querySelector('#index-top').addEventListener('click', ingestFolder);
-      document.querySelector('#health').addEventListener('click', () => setStatus('Health check is available from tools/repo_health.py.'));
+      document.querySelector('#add-source').addEventListener('click', addSourceFolder);
+      document.querySelector('#index-source').addEventListener('click', indexSelectedSourceFolder);
+      document.querySelector('#index-top').addEventListener('click', indexSelectedSourceFolder);
+      document.querySelector('#remove-source').addEventListener('click', removeSelectedSourceFolder);
+      document.querySelector('#health').addEventListener('click', async () => { try { const cfg = await jsonFetch('/api/v1/runtime/config'); setStatus(`Health OK. Database mode: ${cfg.database_mode}.`); } catch(e) { setStatus(e.message, true); } });
+      loadSetup();
     </script>
   </body>
 </html>
