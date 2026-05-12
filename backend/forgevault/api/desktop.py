@@ -28,7 +28,12 @@ class BrowseFolderRequest(BaseModel):
     initial_dir: str | None = None
 
 
-class BrowseFolderResponse(BaseModel):
+class BrowseFileRequest(BaseModel):
+    title: str = "Choose a file for ForgeVault"
+    initial_dir: str | None = None
+
+
+class BrowsePathResponse(BaseModel):
     selected: bool
     path: str | None = None
 
@@ -38,11 +43,25 @@ def desktop_capabilities(request: Request) -> dict:
     return {
         "desktop_bridge_enabled": desktop_bridge_enabled(),
         "browse_folder": desktop_bridge_enabled(),
+        "browse_file": desktop_bridge_enabled(),
     }
 
 
-@router.post("/browse-folder", response_model=BrowseFolderResponse)
-def browse_folder(payload: BrowseFolderRequest, request: Request) -> BrowseFolderResponse:
+def normalize_initial_dir(initial_dir: str | None) -> str:
+    if initial_dir:
+        try:
+            resolved = Path(initial_dir).expanduser().resolve()
+            if resolved.is_file():
+                return str(resolved.parent)
+            if resolved.is_dir():
+                return str(resolved)
+        except Exception:
+            pass
+    return str(Path.home())
+
+
+@router.post("/browse-folder", response_model=BrowsePathResponse)
+def browse_folder(payload: BrowseFolderRequest, request: Request) -> BrowsePathResponse:
     assert_desktop_request(request)
     try:
         import tkinter as tk
@@ -50,22 +69,38 @@ def browse_folder(payload: BrowseFolderRequest, request: Request) -> BrowseFolde
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"folder browser is unavailable: {exc}") from exc
 
-    initial_dir = payload.initial_dir
-    if initial_dir:
-        try:
-            initial_dir = str(Path(initial_dir).expanduser().resolve())
-        except Exception:
-            initial_dir = None
-
     try:
         root = tk.Tk()
         root.withdraw()
         root.attributes("-topmost", True)
-        selected = filedialog.askdirectory(title=payload.title, initialdir=initial_dir or str(Path.home()))
+        selected = filedialog.askdirectory(title=payload.title, initialdir=normalize_initial_dir(payload.initial_dir))
         root.destroy()
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"folder browser failed: {exc}") from exc
 
     if not selected:
-        return BrowseFolderResponse(selected=False, path=None)
-    return BrowseFolderResponse(selected=True, path=str(Path(selected).resolve()))
+        return BrowsePathResponse(selected=False, path=None)
+    return BrowsePathResponse(selected=True, path=str(Path(selected).resolve()))
+
+
+@router.post("/browse-file", response_model=BrowsePathResponse)
+def browse_file(payload: BrowseFileRequest, request: Request) -> BrowsePathResponse:
+    assert_desktop_request(request)
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"file browser is unavailable: {exc}") from exc
+
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        selected = filedialog.askopenfilename(title=payload.title, initialdir=normalize_initial_dir(payload.initial_dir))
+        root.destroy()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"file browser failed: {exc}") from exc
+
+    if not selected:
+        return BrowsePathResponse(selected=False, path=None)
+    return BrowsePathResponse(selected=True, path=str(Path(selected).resolve()))
