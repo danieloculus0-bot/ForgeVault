@@ -34,6 +34,7 @@ def assert_status(response, expected: int = 200):
 def main() -> None:
     root, source = configure_temp_environment()
     (source / "12345_A_demo_print.txt").write_text("ForgeVault CI demo file\n", encoding="utf-8")
+    (source / "assy_demo.SLDASM").write_text("placeholder assembly\n", encoding="utf-8")
     (source / "readme.tmp").write_text("ignored temporary file\n", encoding="utf-8")
 
     from fastapi.testclient import TestClient
@@ -73,13 +74,16 @@ def main() -> None:
             raise AssertionError(f"expected one source folder, got {folders}")
 
         indexed = assert_status(client.post(f"/api/v1/source-folders/{folder['id']}/index", json={"actor": "ci", "max_files": 50}))
-        if indexed["scanned"] != 1 or indexed["ingested"] != 1 or indexed["failed"] != 0:
+        if indexed["scanned"] != 2 or indexed["ingested"] != 2 or indexed["failed"] != 0:
             raise AssertionError(f"unexpected index result: {indexed}")
 
         results = assert_status(client.get("/api/v1/search", params={"q": "UNMAPPED"}))
         if not results:
             raise AssertionError("search did not return indexed unmapped record")
         record_id = results[0]["record"]["internal_record_id"]
+        file_type = results[0]["latest_version"]["version_metadata"].get("file_type", {})
+        if "category" not in file_type:
+            raise AssertionError(f"file type metadata missing: {results[0]}")
 
         checkout = assert_status(client.post(f"/api/v1/records/{record_id}/checkout", json={"actor": "ci", "reason": "smoke"}), 201)
         if checkout["checked_out_by"] != "ci":
@@ -88,6 +92,38 @@ def main() -> None:
         checkout_status = assert_status(client.get(f"/api/v1/records/{record_id}/checkout"))
         if not checkout_status["is_checked_out"]:
             raise AssertionError(checkout_status)
+
+        review = assert_status(
+            client.post(
+                "/api/v1/reviews",
+                json={
+                    "request_type": "pending_checkin",
+                    "submitted_by": "ci",
+                    "assigned_checker": "checker@example.com",
+                    "entity_type": "records",
+                    "entity_id": record_id,
+                    "summary": "CI review request",
+                    "reason": "Exercise review queue behavior",
+                    "risk_level": "medium",
+                    "details": {"source": "ci_smoke"},
+                },
+            ),
+            201,
+        )
+        if review["status"] != "pending":
+            raise AssertionError(review)
+
+        pending = assert_status(client.get("/api/v1/reviews", params={"status_filter": "pending"}))
+        if not pending:
+            raise AssertionError("review queue did not return pending review")
+
+        decided = assert_status(client.post(f"/api/v1/reviews/{review['id']}/decision", json={"reviewer": "checker", "decision": "approved", "comment": "CI approved"}))
+        if decided["status"] != "approved":
+            raise AssertionError(decided)
+
+        notifications = assert_status(client.get("/api/v1/notifications"))
+        if len(notifications) < 2:
+            raise AssertionError(f"expected review requested/approved notifications, got {notifications}")
 
         assert_status(client.delete(f"/api/v1/records/{record_id}/checkout", json={"actor": "ci", "reason": "smoke cleanup", "force": False}))
 
