@@ -8,6 +8,8 @@ from ..config import settings
 from ..database import get_session
 from ..models import Dependency, FileVersion, IngestJob, IntegrationEvent, MetadataFieldDefinition, PluginExecution, Record
 from ..schemas import (
+    CheckInRead,
+    CheckInRequest,
     CheckoutCancel,
     CheckoutCreate,
     CheckoutStatusRead,
@@ -37,6 +39,7 @@ from ..schemas import (
     ReviewRequestRead,
     NotificationEventRead,
 )
+from ..services.checkin import check_in_from_path
 from ..services.folder_ingestion import ingest_folder as run_folder_ingest
 from ..services.ingestion import ingest_file as run_ingest
 from ..services.integrations import export_release_package_to_jobboss2
@@ -180,6 +183,29 @@ def create_managed_record(payload: RecordCreate, session: Session = Depends(get_
 @router.get("/records/{internal_record_id}", response_model=RecordRead)
 def get_record(internal_record_id: str, session: Session = Depends(get_session)):
     return get_record_by_internal_id(session, internal_record_id)
+
+
+@router.post("/records/{internal_record_id}/checkin", response_model=CheckInRead, status_code=status.HTTP_201_CREATED)
+def checkin_record(internal_record_id: str, payload: CheckInRequest, session: Session = Depends(get_session)):
+    record = get_record_by_internal_id(session, internal_record_id)
+    try:
+        result = check_in_from_path(
+            session,
+            record=record,
+            file_path=payload.file_path,
+            actor=payload.actor,
+            note=payload.note,
+            customer_revision=payload.customer_revision,
+            internal_revision=payload.internal_revision,
+            submit_for_review=payload.submit_for_review,
+            assigned_checker=payload.assigned_checker,
+            risk_level=payload.risk_level,
+        )
+        session.commit()
+        return result
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post("/ingest", response_model=FileVersionRead, status_code=status.HTTP_201_CREATED)
