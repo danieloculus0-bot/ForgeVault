@@ -17,12 +17,12 @@ if (-not (Test-Path $Python)) {
 Write-Host "Installing icon conversion dependencies..." -ForegroundColor Cyan
 & $Python -m pip install --upgrade cairosvg pillow
 
-$Code = @'
+$Code = @"
 from pathlib import Path
 from PIL import Image
 import cairosvg
 
-repo = Path(__file__).resolve().parents[1]
+repo = Path(r'''$RepoRoot''')
 svg = repo / "assets" / "icon" / "forgevault-icon.svg"
 png = repo / "assets" / "icon" / "forgevault-icon-256.png"
 ico = repo / "assets" / "icon" / "forgevault-icon.ico"
@@ -32,7 +32,7 @@ base = Image.open(png).convert("RGBA")
 sizes = [(256,256), (128,128), (64,64), (48,48), (32,32), (16,16)]
 base.save(ico, sizes=sizes)
 print(ico)
-'@
+"@
 
 $Temp = Join-Path $env:TEMP "make-forgevault-icon.py"
 Set-Content -Path $Temp -Value $Code -Encoding UTF8
