@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     staging_root: str = "./data/staging"
     service_name: str = "forgevault-api"
     auto_create_schema: bool = False
+    enable_desktop_bridge: bool = False
     jobboss2_outbox_root: str = "./data/jobboss2/outbox"
     jobboss2_webhook_url: str | None = None
     jobboss2_api_key: str | None = None
