@@ -20,12 +20,22 @@ def default_home() -> Path:
 
 def configure_desktop_environment(home: Path) -> None:
     data = home / "data"
+    config = home / "config"
+    logs = home / "logs"
+    backups = home / "backups"
+    vault = data / "vault"
+    staging = data / "staging"
+    outbox = data / "jobboss2" / "outbox"
+
     os.environ.setdefault("FORGEVAULT_DATABASE_URL", f"sqlite+pysqlite:///{(data / 'forgevault.db').as_posix()}")
-    os.environ.setdefault("FORGEVAULT_LOCAL_VAULT_ROOT", str(data / "vault"))
-    os.environ.setdefault("FORGEVAULT_STAGING_ROOT", str(data / "staging"))
-    os.environ.setdefault("FORGEVAULT_JOBBOSS2_OUTBOX_ROOT", str(data / "jobboss2" / "outbox"))
+    os.environ.setdefault("FORGEVAULT_LOCAL_VAULT_ROOT", str(vault))
+    os.environ.setdefault("FORGEVAULT_STAGING_ROOT", str(staging))
+    os.environ.setdefault("FORGEVAULT_JOBBOSS2_OUTBOX_ROOT", str(outbox))
     os.environ.setdefault("FORGEVAULT_AUTO_CREATE_SCHEMA", "true")
-    data.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("FORGEVAULT_ENABLE_DESKTOP_BRIDGE", "true")
+
+    for folder in (data, config, logs, backups, vault, staging, outbox):
+        folder.mkdir(parents=True, exist_ok=True)
 
 
 def main() -> None:
