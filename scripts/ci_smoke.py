@@ -93,39 +93,73 @@ def main() -> None:
         if not checkout_status["is_checked_out"]:
             raise AssertionError(checkout_status)
 
-        review = assert_status(
+        replacement = root / "replacement" / "12345_A_demo_print.txt"
+        replacement.parent.mkdir(parents=True, exist_ok=True)
+        replacement.write_text("ForgeVault CI demo file\nChecked in replacement content.\n", encoding="utf-8")
+
+        checkin = assert_status(
             client.post(
-                "/api/v1/reviews",
+                f"/api/v1/records/{record_id}/checkin",
                 json={
-                    "request_type": "pending_checkin",
-                    "submitted_by": "ci",
+                    "actor": "ci",
+                    "file_path": str(replacement),
+                    "note": "CI real check-in smoke test",
+                    "customer_revision": "B",
+                    "internal_revision": "002",
+                    "submit_for_review": True,
                     "assigned_checker": "checker@example.com",
-                    "entity_type": "records",
-                    "entity_id": record_id,
-                    "summary": "CI review request",
-                    "reason": "Exercise review queue behavior",
                     "risk_level": "medium",
-                    "details": {"source": "ci_smoke"},
                 },
             ),
             201,
         )
-        if review["status"] != "pending":
-            raise AssertionError(review)
+
+        version = checkin["file_version"]
+        if version["version_number"] != 2:
+            raise AssertionError(f"expected checked-in version 2, got {version}")
+        if version["filename"] != replacement.name or version["original_source_path"] != str(replacement):
+            raise AssertionError(f"check-in version did not use replacement file path: {version}")
+        if version["customer_revision"] != "B" or version["internal_revision"] != "002":
+            raise AssertionError(f"check-in revision mapping failed: {version}")
+        if version["version_metadata"].get("checkin", {}).get("submitted_by") != "ci":
+            raise AssertionError(f"check-in metadata missing submitter: {version}")
+        if "category" not in version["version_metadata"].get("file_type", {}):
+            raise AssertionError(f"check-in file type metadata missing: {version}")
+
+        review = checkin.get("review")
+        if not review or review["status"] != "pending":
+            raise AssertionError(f"check-in did not create pending review: {checkin}")
+        if review["file_version_id"] != version["id"]:
+            raise AssertionError(f"review not tied to checked-in version: {review}")
+        if review["assigned_checker"] != "checker@example.com" or review["risk_level"] != "medium":
+            raise AssertionError(f"review routing failed: {review}")
+
+        checkout_status = assert_status(client.get(f"/api/v1/records/{record_id}/checkout"))
+        if checkout_status["is_checked_out"]:
+            raise AssertionError(f"check-in should release checkout, got {checkout_status}")
+
+        versions = assert_status(client.get(f"/api/v1/records/{record_id}/versions"))
+        version_numbers = [item["version_number"] for item in versions]
+        if version_numbers[:2] != [2, 1]:
+            raise AssertionError(f"expected versions newest-first [2, 1], got {version_numbers}")
 
         pending = assert_status(client.get("/api/v1/reviews", params={"status_filter": "pending"}))
-        if not pending:
-            raise AssertionError("review queue did not return pending review")
+        if not any(item["id"] == review["id"] for item in pending):
+            raise AssertionError(f"review queue did not return check-in review: {pending}")
 
-        decided = assert_status(client.post(f"/api/v1/reviews/{review['id']}/decision", json={"reviewer": "checker", "decision": "approved", "comment": "CI approved"}))
+        decided = assert_status(
+            client.post(
+                f"/api/v1/reviews/{review['id']}/decision",
+                json={"reviewer": "checker", "decision": "approved", "comment": "CI approved checked-in version"},
+            )
+        )
         if decided["status"] != "approved":
             raise AssertionError(decided)
 
         notifications = assert_status(client.get("/api/v1/notifications"))
-        if len(notifications) < 2:
+        event_types = {item["event_type"] for item in notifications}
+        if "review.requested" not in event_types or "review.approved" not in event_types:
             raise AssertionError(f"expected review requested/approved notifications, got {notifications}")
-
-        assert_status(client.delete(f"/api/v1/records/{record_id}/checkout", json={"actor": "ci", "reason": "smoke cleanup", "force": False}))
 
         removed = assert_status(
             client.delete(
