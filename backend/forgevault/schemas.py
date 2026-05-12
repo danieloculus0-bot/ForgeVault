@@ -145,6 +145,68 @@ class SourceFolderIndexRequest(BaseModel):
     max_files: int = Field(default=2000, ge=1, le=50000)
 
 
+class ReviewRequestCreate(BaseModel):
+    request_type: str
+    submitted_by: str
+    entity_type: str
+    entity_id: str
+    summary: str
+    reason: str | None = None
+    risk_level: str = "low"
+    assigned_checker: str | None = None
+    record_id: UUID | None = None
+    file_version_id: UUID | None = None
+    source_folder_id: UUID | None = None
+    details: dict = Field(default_factory=dict)
+
+
+class ReviewDecision(BaseModel):
+    reviewer: str
+    decision: str
+    comment: str | None = None
+
+
+class ReviewRequestRead(BaseModel):
+    id: UUID
+    request_type: str
+    status: str
+    risk_level: str
+    submitted_by: str
+    assigned_checker: str | None = None
+    entity_type: str
+    entity_id: str
+    record_id: UUID | None = None
+    file_version_id: UUID | None = None
+    source_folder_id: UUID | None = None
+    summary: str
+    reason: str | None = None
+    details: dict
+    created_at: datetime
+    reviewed_at: datetime | None = None
+    reviewed_by: str | None = None
+    review_comment: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class NotificationEventRead(BaseModel):
+    id: UUID
+    event_type: str
+    status: str
+    channel: str
+    recipient: str | None = None
+    subject: str
+    body: str
+    entity_type: str
+    entity_id: str
+    payload: dict
+    created_by: str
+    created_at: datetime
+    sent_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class LifecycleMove(BaseModel):
     to_state: str
     actor: str
