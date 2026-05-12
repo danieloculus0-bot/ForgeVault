@@ -32,12 +32,18 @@ from ..schemas import (
     SourceFolderIndexRequest,
     SourceFolderRead,
     SourceFolderRemove,
+    ReviewDecision,
+    ReviewRequestCreate,
+    ReviewRequestRead,
+    NotificationEventRead,
 )
 from ..services.folder_ingestion import ingest_folder as run_folder_ingest
 from ..services.ingestion import ingest_file as run_ingest
 from ..services.integrations import export_release_package_to_jobboss2
 from ..services.lifecycle import transition_record
 from ..services.metadata import create_record
+from ..services.notifications import list_notifications
+from ..services.reviews import create_review_request, list_review_requests, review_decision
 from ..services.search import search_records
 from ..services.source_folders import add_source_folder, index_source_folder, list_source_folders, remove_source_folder, setup_status
 from ..services.versioning import active_checkout, cancel_checkout, check_out
@@ -121,6 +127,38 @@ def index_saved_source_folder(source_folder_id: UUID, payload: SourceFolderIndex
     except ValueError as exc:
         session.rollback()
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/reviews", response_model=ReviewRequestRead, status_code=status.HTTP_201_CREATED)
+def submit_review(payload: ReviewRequestCreate, session: Session = Depends(get_session)):
+    try:
+        review = create_review_request(session, **payload.model_dump())
+        session.commit()
+        return review
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/reviews", response_model=list[ReviewRequestRead])
+def review_queue(status_filter: str | None = "pending", assigned_checker: str | None = None, limit: int = 100, session: Session = Depends(get_session)):
+    return list_review_requests(session, status=status_filter, assigned_checker=assigned_checker, limit=limit)
+
+
+@router.post("/reviews/{review_id}/decision", response_model=ReviewRequestRead)
+def decide_review(review_id: UUID, payload: ReviewDecision, session: Session = Depends(get_session)):
+    try:
+        review = review_decision(session, review_id=review_id, reviewer=payload.reviewer, decision=payload.decision, comment=payload.comment)
+        session.commit()
+        return review
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/notifications", response_model=list[NotificationEventRead])
+def notification_log(status_filter: str | None = None, limit: int = 100, session: Session = Depends(get_session)):
+    return list_notifications(session, status=status_filter, limit=limit)
 
 
 @router.post("/records", response_model=RecordRead, status_code=status.HTTP_201_CREATED)
