@@ -72,6 +72,38 @@ class CheckoutCreate(BaseModel):
     reason: str | None = None
 
 
+class CheckoutCancel(BaseModel):
+    actor: str
+    reason: str | None = None
+    force: bool = False
+
+
+class CheckoutRead(BaseModel):
+    id: UUID
+    record_id: UUID
+    checked_out_by: str
+    reason: str | None = None
+    created_at: datetime
+    released_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class CheckoutStatusRead(BaseModel):
+    internal_record_id: str
+    is_checked_out: bool
+    checkout: CheckoutRead | None = None
+
+
+class RuntimeConfigRead(BaseModel):
+    database_url: str
+    database_mode: str
+    local_vault_root: str
+    staging_root: str
+    jobboss2_outbox_root: str
+    auto_create_schema: bool
+
+
 class LifecycleMove(BaseModel):
     to_state: str
     actor: str
