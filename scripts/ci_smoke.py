@@ -50,6 +50,8 @@ def main() -> None:
         ui = client.get("/ui")
         if ui.status_code != 200 or "ForgeVault Desktop" not in ui.text:
             raise AssertionError(f"UI smoke failed: {ui.status_code}")
+        if "openForgeVaultCheckinFlow" not in ui.text or "Check In New Version" not in ui.text:
+            raise AssertionError("UI check-in script was not injected into /ui")
 
         caps = assert_status(client.get("/api/v1/desktop/capabilities"))
         if not caps.get("desktop_bridge_enabled"):
