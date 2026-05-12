@@ -11,22 +11,43 @@ from .config import settings
 from .database import create_all
 
 
-def frontend_index_path() -> Path:
+def frontend_asset_path(filename: str) -> Path:
     candidates = []
     bundle_root = getattr(sys, "_MEIPASS", None)
     if bundle_root:
-        candidates.append(Path(bundle_root) / "frontend" / "index.html")
+        candidates.append(Path(bundle_root) / "frontend" / filename)
     candidates.extend(
         [
-            Path.cwd() / "frontend" / "index.html",
-            Path(__file__).resolve().parents[2] / "frontend" / "index.html",
+            Path.cwd() / "frontend" / filename,
+            Path(__file__).resolve().parents[2] / "frontend" / filename,
         ]
     )
     for candidate in candidates:
         if candidate.exists():
             return candidate
     searched = ", ".join(str(candidate) for candidate in candidates)
-    raise FileNotFoundError(f"ForgeVault frontend/index.html not found. Searched: {searched}")
+    raise FileNotFoundError(f"ForgeVault frontend/{filename} not found. Searched: {searched}")
+
+
+def frontend_index_path() -> Path:
+    return frontend_asset_path("index.html")
+
+
+def inject_optional_desktop_scripts(html: str) -> str:
+    scripts = []
+    for filename in ("checkin-ui.js",):
+        try:
+            scripts.append(frontend_asset_path(filename).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            continue
+
+    if not scripts:
+        return html
+
+    block = "\n".join(f"<script>\n{script}\n</script>" for script in scripts)
+    if "</body>" in html:
+        return html.replace("</body>", f"{block}\n</body>", 1)
+    return f"{html}\n{block}"
 
 
 @asynccontextmanager
@@ -48,4 +69,5 @@ def healthz() -> dict[str, str]:
 
 @app.get("/ui", response_class=HTMLResponse)
 def web_ui() -> str:
-    return frontend_index_path().read_text(encoding="utf-8")
+    html = frontend_index_path().read_text(encoding="utf-8")
+    return inject_optional_desktop_scripts(html)
