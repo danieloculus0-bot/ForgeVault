@@ -22,22 +22,26 @@
       button.primary { background:var(--accent); border-color:var(--accent2); color:#16100a; }
       button.danger { background:#161a20; border-color:var(--danger); color:#e2b8b8; }
       button.compact { padding:5px 8px; font-size:12px; }
+      button.ghost { background:#111820; border-color:var(--line); color:var(--muted); }
       button:disabled { opacity:.48; cursor:not-allowed; }
       button:hover:not(:disabled) { filter:brightness(1.08); }
-      input { width:100%; border:1px solid var(--line); background:#080c10; color:var(--text); border-radius:4px; padding:8px 10px; outline:none; }
-      input:focus { border-color:var(--accent); }
+      input, textarea, select { width:100%; border:1px solid var(--line); background:#080c10; color:var(--text); border-radius:4px; padding:8px 10px; outline:none; font-family:inherit; }
+      textarea { min-height:74px; resize:vertical; }
+      input:focus, textarea:focus, select:focus { border-color:var(--accent); }
       label { display:grid; gap:5px; color:var(--muted); font-size:12px; }
-      .workspace { min-height:0; display:grid; grid-template-columns:310px 1fr 390px; }
+      .workspace { min-height:0; display:grid; grid-template-columns:310px 1fr 430px; }
       .pane { min-height:0; border-right:1px solid var(--line); background:var(--panel); }
       .pane.right { border-right:0; border-left:1px solid var(--line); }
       .pane-title { height:38px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid var(--line); color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+      .pane-title .mini-actions { display:flex; gap:6px; text-transform:none; letter-spacing:0; }
       .pane-body { height:calc(100% - 38px); overflow:auto; padding:10px; }
       .source-box { display:grid; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:10px; }
-      .setup-card { border:1px solid var(--line); background:#0d1319; border-radius:6px; padding:10px; color:var(--muted); font-size:13px; line-height:1.35; }
-      .source-row { display:grid; gap:3px; padding:8px; border:1px solid transparent; border-radius:5px; color:var(--muted); cursor:pointer; }
-      .source-row.active, .source-row:hover { background:#202b36; color:var(--text); border-color:#344353; }
-      .source-title { font-weight:700; color:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      .source-path { font-size:12px; color:var(--muted2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .setup-card { border:1px solid var(--line); background:#0d1319; border-radius:6px; padding:10px; color:var(--muted); font-size:13px; line-height:1.35; margin-bottom:10px; }
+      .source-row, .queue-row, .note-row { display:grid; gap:3px; padding:8px; border:1px solid transparent; border-radius:5px; color:var(--muted); }
+      .source-row { cursor:pointer; }
+      .source-row.active, .source-row:hover, .queue-row:hover, .note-row:hover { background:#202b36; color:var(--text); border-color:#344353; }
+      .source-title, .queue-title, .note-title { font-weight:700; color:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .source-path, .queue-sub, .note-sub { font-size:12px; color:var(--muted2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .source-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
       .path-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
       .main { min-width:0; background:#0d1218; display:grid; grid-template-rows:54px 1fr; }
@@ -49,6 +53,7 @@
       tbody tr { cursor:pointer; } tbody tr:hover, tbody tr.selected { background:#1b2631; }
       .name { color:var(--text); font-weight:600; } .muted { color:var(--muted); }
       .pill { display:inline-block; border:1px solid var(--line2); border-radius:999px; padding:2px 8px; color:var(--muted); background:#121a22; font-size:12px; }
+      .pill.pending { color:#e7c799; border-color:#735b35; } .pill.approved { color:#b8d8be; border-color:#4f7658; } .pill.rejected { color:#e2b8b8; border-color:#8d4b4b; }
       .preview { height:220px; display:grid; place-items:center; background:#080c10; border:1px solid var(--line); border-radius:6px; margin-bottom:12px; }
       .preview-card { text-align:center; color:var(--muted); }
       .preview-icon { width:92px; height:112px; margin:0 auto 12px; border:1px solid var(--line2); border-radius:6px; background:linear-gradient(180deg,#202a35,#111820); display:grid; place-items:center; font-size:22px; font-weight:800; color:var(--accent); }
@@ -58,6 +63,8 @@
       .button-row { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
       .versions { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }
       .version-row { display:grid; grid-template-columns:46px 1fr; gap:8px; padding:7px 0; border-bottom:1px solid #202a35; font-size:13px; }
+      .form-grid { display:grid; gap:9px; margin-bottom:12px; }
+      .section-title { color:var(--muted); text-transform:uppercase; font-size:12px; letter-spacing:.04em; margin:12px 0 6px; }
       .footer { display:flex; align-items:center; padding:0 10px; background:#090d11; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
       .error { color:#df9c9c; }
       @media (max-width:1100px) { .workspace { grid-template-columns:260px 1fr; } .pane.right { display:none; } }
@@ -103,7 +110,7 @@
         </main>
 
         <aside class="pane right">
-          <div class="pane-title"><span>Preview / Details</span></div>
+          <div class="pane-title"><span id="right-title">Preview / Details</span><div class="mini-actions"><button id="show-details" class="compact ghost">Details</button><button id="show-reviews" class="compact ghost">Reviews</button><button id="show-notes" class="compact ghost">Notifications</button></div></div>
           <div id="detail" class="pane-body detail">
             <div class="preview"><div class="preview-card"><div class="preview-icon">FV</div><div>Select a file or record</div></div></div>
             <p class="muted">Preview, metadata, versions, checkout state, dependencies, and release actions appear here.</p>
@@ -116,7 +123,7 @@
 
     <script>
       const params = new URLSearchParams(location.search);
-      const state = { records: [], sourceFolders: [], selectedSourceId: null, selectedRecordIndex: null, lastQuery: 'UNMAPPED', desktopBridge: false };
+      const state = { records: [], sourceFolders: [], selectedSourceId: null, selectedRecordIndex: null, lastQuery: 'UNMAPPED', desktopBridge: false, rightPanel: 'details' };
       if (params.get('folder')) document.querySelector('#folder').value = params.get('folder');
 
       function setStatus(message, error=false) { const el = document.querySelector('#status'); el.textContent = message; el.className = error ? 'footer error' : 'footer'; }
@@ -126,6 +133,7 @@
       function shortPath(path='') { return path.replaceAll('\\\\', '\\').split(/[\\/]/).slice(-3).join(' / '); }
       function actor() { return document.querySelector('#actor').value || 'desktop'; }
       function selectedSource() { return state.sourceFolders.find(f => f.id === state.selectedSourceId) || null; }
+      function selectedRecord() { return state.selectedRecordIndex === null ? null : state.records[state.selectedRecordIndex]; }
 
       async function loadDesktopCapabilities() {
         try {
@@ -147,9 +155,7 @@
           const result = await jsonFetch('/api/v1/desktop/browse-folder', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title:'Choose a source folder for ForgeVault', initial_dir: current }) });
           if (!result.selected) { setStatus('Folder selection cancelled.'); return; }
           document.querySelector('#folder').value = result.path;
-          if (!document.querySelector('#display_name').value) {
-            document.querySelector('#display_name').value = result.path.split(/[\\/]/).filter(Boolean).pop() || 'Source Folder';
-          }
+          if (!document.querySelector('#display_name').value) document.querySelector('#display_name').value = result.path.split(/[\\/]/).filter(Boolean).pop() || 'Source Folder';
           setStatus('Folder selected. Click Add Source Folder to save it.');
         } catch (e) { setStatus(e.message, true); }
       }
@@ -225,31 +231,29 @@
 
       function renderTable() {
         const tbody = document.querySelector('#records');
-        if (!state.records.length) {
-          tbody.innerHTML = '<tr><td colspan="6" class="muted">No records found.</td></tr>';
-          renderDetail(null);
-          return;
-        }
+        if (!state.records.length) { tbody.innerHTML = '<tr><td colspan="6" class="muted">No records found.</td></tr>'; renderDetail(null); return; }
         tbody.innerHTML = state.records.map((item, index) => {
           const r = item.record; const v = item.latest_version; const name = v?.filename || '(no file version)';
-          const identity = r.customer_part_number || r.internal_record_id; const rev = r.customer_revision || r.internal_revision || ''; const source = v?.original_source_path || '';
-          return `<tr data-index="${index}" class="${state.selectedRecordIndex === index ? 'selected' : ''}"><td class="name">${esc(name)}</td><td>${esc(identity)}</td><td>${esc(rev)}</td><td>${esc(ext(name))}</td><td><span class="pill">Indexed</span></td><td title="${esc(source)}">${esc(shortPath(source))}</td></tr>`;
+          const identity = r.customer_part_number || r.internal_record_id; const rev = r.customer_revision || r.internal_revision || ''; const source = v?.original_source_path || ''; const typeInfo = v?.version_metadata?.file_type?.label || ext(name);
+          return `<tr data-index="${index}" class="${state.selectedRecordIndex === index ? 'selected' : ''}"><td class="name">${esc(name)}</td><td>${esc(identity)}</td><td>${esc(rev)}</td><td>${esc(typeInfo)}</td><td><span class="pill">Indexed</span></td><td title="${esc(source)}">${esc(shortPath(source))}</td></tr>`;
         }).join('');
         tbody.querySelectorAll('tr[data-index]').forEach(row => row.addEventListener('click', () => selectRecord(Number(row.dataset.index))));
         if (state.selectedRecordIndex === null) selectRecord(0); else renderDetail(state.records[state.selectedRecordIndex]);
       }
 
-      async function selectRecord(index) { state.selectedRecordIndex = index; document.querySelectorAll('#records tr').forEach(row => row.classList.remove('selected')); const row = document.querySelector(`#records tr[data-index="${index}"]`); if (row) row.classList.add('selected'); await renderDetail(state.records[index]); }
+      async function selectRecord(index) { state.selectedRecordIndex = index; document.querySelectorAll('#records tr').forEach(row => row.classList.remove('selected')); const row = document.querySelector(`#records tr[data-index="${index}"]`); if (row) row.classList.add('selected'); state.rightPanel = 'details'; await renderDetail(state.records[index]); }
 
       async function renderDetail(item) {
+        document.querySelector('#right-title').textContent = 'Preview / Details';
         const el = document.querySelector('#detail');
         if (!item) { el.innerHTML = '<div class="preview"><div class="preview-card"><div class="preview-icon">FV</div><div>Select a file or record</div></div></div><p class="muted">Preview, metadata, versions, checkout state, dependencies, and release actions appear here.</p>'; return; }
-        const r = item.record; const v = item.latest_version; const name = v?.filename || '(no file version)'; const type = ext(name);
+        const r = item.record; const v = item.latest_version; const name = v?.filename || '(no file version)'; const type = ext(name); const fileType = v?.version_metadata?.file_type?.label || type;
         let checkoutText = 'Checking checkout status...';
         try { const status = await jsonFetch(`/api/v1/records/${encodeURIComponent(r.internal_record_id)}/checkout`); checkoutText = status.is_checked_out ? `Checked out by ${status.checkout.checked_out_by}` : 'Available for checkout'; } catch (e) { checkoutText = e.message; }
-        el.innerHTML = `<div class="preview"><div class="preview-card"><div class="preview-icon">${esc(type.slice(0,4))}</div><div>${esc(name)}</div><div class="muted">Preview placeholder</div></div></div><h2>${esc(name)}</h2><div class="sub">${esc(r.customer_part_number || 'Unmapped')} · ${esc(r.internal_record_id)}</div><div class="pill">${esc(checkoutText)}</div><div class="button-row"><button id="checkout-btn">Check Out</button><button class="primary">Check In New Version</button><button>Release</button><button id="cancel-checkout-btn" class="danger">Cancel Checkout</button></div><div class="meta"><div>Customer Rev</div><div>${esc(r.customer_revision || '-')}</div><div>Internal Rev</div><div>${esc(r.internal_revision || '-')}</div><div>Source Path</div><div title="${esc(v?.original_source_path || '')}">${esc(v?.original_source_path || '-')}</div><div>Record ID</div><div>${esc(r.internal_record_id)}</div></div><div class="versions"><div class="muted">Loading version history...</div></div>`;
+        el.innerHTML = `<div class="preview"><div class="preview-card"><div class="preview-icon">${esc(type.slice(0,4))}</div><div>${esc(name)}</div><div class="muted">${esc(fileType)}</div></div></div><h2>${esc(name)}</h2><div class="sub">${esc(r.customer_part_number || 'Unmapped')} · ${esc(r.internal_record_id)}</div><div class="pill">${esc(checkoutText)}</div><div class="button-row"><button id="checkout-btn">Check Out</button><button class="primary" id="submit-review-btn">Submit for Review</button><button>Check In New Version</button><button>Release</button><button id="cancel-checkout-btn" class="danger">Cancel Checkout</button></div><div class="meta"><div>File Type</div><div>${esc(fileType)}</div><div>Customer Rev</div><div>${esc(r.customer_revision || '-')}</div><div>Internal Rev</div><div>${esc(r.internal_revision || '-')}</div><div>Source Path</div><div title="${esc(v?.original_source_path || '')}">${esc(v?.original_source_path || '-')}</div><div>Record ID</div><div>${esc(r.internal_record_id)}</div></div><div class="versions"><div class="muted">Loading version history...</div></div>`;
         document.querySelector('#checkout-btn').addEventListener('click', async () => checkoutRecord(r.internal_record_id));
         document.querySelector('#cancel-checkout-btn').addEventListener('click', async () => cancelCheckout(r.internal_record_id));
+        document.querySelector('#submit-review-btn').addEventListener('click', async () => submitSelectedForReview());
         try { const versions = await jsonFetch(`/api/v1/records/${encodeURIComponent(r.internal_record_id)}/versions`); el.querySelector('.versions').innerHTML = '<strong>Version History</strong>' + versions.map(ver => `<div class="version-row"><div>v${ver.version_number}</div><div><div>${esc(ver.filename)}</div><div class="muted">${esc(ver.original_source_path)}</div></div></div>`).join(''); } catch (e) { el.querySelector('.versions').innerHTML = `<span class="error">${esc(e.message)}</span>`; }
       }
 
@@ -265,6 +269,50 @@
         try { const ok = confirm(`Cancel checkout for ${internalId}?\n\nThis does not delete files. It only releases the checkout lock.`); if (!ok) return; await jsonFetch(`/api/v1/records/${encodeURIComponent(internalId)}/checkout`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ actor: actor(), reason:'UI cancel checkout', force:false }) }); setStatus(`${internalId} checkout cancelled.`); await renderDetail(state.records[state.selectedRecordIndex]); } catch (e) { setStatus(e.message, true); }
       }
 
+      async function submitSelectedForReview() {
+        try {
+          const item = selectedRecord();
+          if (!item) throw new Error('Select a record first.');
+          const r = item.record; const v = item.latest_version; const checker = prompt('Checker email/name (optional):', '') || null;
+          const review = await jsonFetch('/api/v1/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ request_type:'pending_checkin', submitted_by: actor(), assigned_checker: checker, entity_type:'records', entity_id:r.internal_record_id, record_id:r.id, file_version_id:v?.id || null, summary:`Review ${v?.filename || r.internal_record_id}`, reason:'Submitted from ForgeVault Desktop', risk_level:r.customer_part_number === 'UNMAPPED' ? 'medium' : 'low', details:{ source:'desktop_ui', file_name:v?.filename || null, source_path:v?.original_source_path || null } }) });
+          setStatus(`Review submitted: ${review.summary}`);
+          await showReviews();
+        } catch (e) { setStatus(e.message, true); }
+      }
+
+      async function showReviews() {
+        state.rightPanel = 'reviews'; document.querySelector('#right-title').textContent = 'Review Queue';
+        const el = document.querySelector('#detail'); el.innerHTML = '<div class="setup-card">Loading review queue...</div>';
+        try {
+          const reviews = await jsonFetch('/api/v1/reviews?status_filter=pending&limit=100');
+          if (!reviews.length) { el.innerHTML = '<div class="setup-card"><strong>No pending reviews</strong><br><span class="muted">Submitted check-ins, release requests, and risky changes will appear here.</span></div>'; return; }
+          el.innerHTML = '<div class="section-title">Pending Reviews</div>' + reviews.map(r => `<div class="queue-row" data-review="${r.id}"><div class="queue-title">${esc(r.summary)}</div><div class="queue-sub"><span class="pill pending">${esc(r.status)}</span> ${esc(r.request_type)} · ${esc(r.risk_level)} risk</div><div class="queue-sub">Submitted by ${esc(r.submitted_by)}${r.assigned_checker ? ' · Checker ' + esc(r.assigned_checker) : ''}</div><div class="queue-sub">${esc(r.reason || '')}</div><div class="button-row"><button class="compact primary" data-approve="${r.id}">Approve</button><button class="compact danger" data-reject="${r.id}">Reject</button></div></div>`).join('');
+          el.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => decideReview(btn.dataset.approve, 'approved')));
+          el.querySelectorAll('[data-reject]').forEach(btn => btn.addEventListener('click', () => decideReview(btn.dataset.reject, 'rejected')));
+        } catch (e) { el.innerHTML = `<span class="error">${esc(e.message)}</span>`; setStatus(e.message, true); }
+      }
+
+      async function decideReview(reviewId, decision) {
+        try {
+          const comment = prompt(`${decision === 'approved' ? 'Approve' : 'Reject'} review comment:`, decision === 'approved' ? 'Approved' : 'Rejected') || '';
+          const result = await jsonFetch(`/api/v1/reviews/${reviewId}/decision`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ reviewer: actor(), decision, comment }) });
+          setStatus(`Review ${result.status}: ${result.summary}`);
+          await showReviews();
+        } catch (e) { setStatus(e.message, true); }
+      }
+
+      async function showNotifications() {
+        state.rightPanel = 'notifications'; document.querySelector('#right-title').textContent = 'Notifications';
+        const el = document.querySelector('#detail'); el.innerHTML = '<div class="setup-card">Loading notifications...</div>';
+        try {
+          const notes = await jsonFetch('/api/v1/notifications?limit=100');
+          if (!notes.length) { el.innerHTML = '<div class="setup-card"><strong>No notifications yet</strong><br><span class="muted">Review events, approvals, rejections, backup warnings, and future emails appear here.</span></div>'; return; }
+          el.innerHTML = '<div class="section-title">App Notification Log</div>' + notes.map(n => `<div class="note-row"><div class="note-title">${esc(n.subject)}</div><div class="note-sub"><span class="pill">${esc(n.channel)}</span> ${esc(n.event_type)} · ${esc(n.status)}</div><div class="note-sub">${esc(n.recipient ? 'To ' + n.recipient : 'No recipient')} · ${new Date(n.created_at).toLocaleString()}</div><div class="note-sub">${esc(n.body)}</div></div>`).join('');
+        } catch (e) { el.innerHTML = `<span class="error">${esc(e.message)}</span>`; setStatus(e.message, true); }
+      }
+
+      function showDetailsPanel() { state.rightPanel = 'details'; renderDetail(selectedRecord()); }
+
       document.querySelector('#search').addEventListener('click', search);
       document.querySelector('#refresh').addEventListener('click', search);
       document.querySelector('#browse-source').addEventListener('click', browseSourceFolder);
@@ -273,6 +321,9 @@
       document.querySelector('#index-source').addEventListener('click', indexSelectedSourceFolder);
       document.querySelector('#index-top').addEventListener('click', indexSelectedSourceFolder);
       document.querySelector('#remove-source').addEventListener('click', removeSelectedSourceFolder);
+      document.querySelector('#show-details').addEventListener('click', showDetailsPanel);
+      document.querySelector('#show-reviews').addEventListener('click', showReviews);
+      document.querySelector('#show-notes').addEventListener('click', showNotifications);
       document.querySelector('#health').addEventListener('click', async () => { try { const cfg = await jsonFetch('/api/v1/runtime/config'); setStatus(`Health OK. Database mode: ${cfg.database_mode}.`); } catch(e) { setStatus(e.message, true); } });
       loadDesktopCapabilities();
       loadSetup();
