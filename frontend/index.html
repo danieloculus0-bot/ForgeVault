@@ -39,6 +39,7 @@
       .source-title { font-weight:700; color:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .source-path { font-size:12px; color:var(--muted2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .source-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+      .path-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
       .main { min-width:0; background:#0d1218; display:grid; grid-template-rows:54px 1fr; }
       .searchbar { display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); background:#101720; }
       table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
@@ -77,6 +78,7 @@
             <div id="setup" class="setup-card">Checking setup...</div>
             <div class="source-box">
               <label>Folder path<input id="folder" placeholder="P:\\Blue Prints or C:\\Engineering\\Jobs" /></label>
+              <div class="path-actions"><button id="browse-source" disabled>Browse for Source Folder</button><button id="use-prefill">Use Typed Path</button></div>
               <label>Display name<input id="display_name" placeholder="Optional, example: Blue Prints" /></label>
               <label>User<input id="actor" value="desktop" /></label>
               <button id="add-source" class="primary">Add Source Folder</button>
@@ -114,7 +116,7 @@
 
     <script>
       const params = new URLSearchParams(location.search);
-      const state = { records: [], sourceFolders: [], selectedSourceId: null, selectedRecordIndex: null, lastQuery: 'UNMAPPED' };
+      const state = { records: [], sourceFolders: [], selectedSourceId: null, selectedRecordIndex: null, lastQuery: 'UNMAPPED', desktopBridge: false };
       if (params.get('folder')) document.querySelector('#folder').value = params.get('folder');
 
       function setStatus(message, error=false) { const el = document.querySelector('#status'); el.textContent = message; el.className = error ? 'footer error' : 'footer'; }
@@ -124,6 +126,33 @@
       function shortPath(path='') { return path.replaceAll('\\\\', '\\').split(/[\\/]/).slice(-3).join(' / '); }
       function actor() { return document.querySelector('#actor').value || 'desktop'; }
       function selectedSource() { return state.sourceFolders.find(f => f.id === state.selectedSourceId) || null; }
+
+      async function loadDesktopCapabilities() {
+        try {
+          const caps = await jsonFetch('/api/v1/desktop/capabilities');
+          state.desktopBridge = !!caps.browse_folder;
+          document.querySelector('#browse-source').disabled = !state.desktopBridge;
+          if (state.desktopBridge) setStatus('Desktop folder browser ready.');
+        } catch (e) {
+          state.desktopBridge = false;
+          document.querySelector('#browse-source').disabled = true;
+        }
+      }
+
+      async function browseSourceFolder() {
+        try {
+          if (!state.desktopBridge) throw new Error('Folder browsing is available when launched from ForgeVault Desktop. You can still type or paste a path.');
+          setStatus('Opening folder browser...');
+          const current = document.querySelector('#folder').value || null;
+          const result = await jsonFetch('/api/v1/desktop/browse-folder', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title:'Choose a source folder for ForgeVault', initial_dir: current }) });
+          if (!result.selected) { setStatus('Folder selection cancelled.'); return; }
+          document.querySelector('#folder').value = result.path;
+          if (!document.querySelector('#display_name').value) {
+            document.querySelector('#display_name').value = result.path.split(/[\\/]/).filter(Boolean).pop() || 'Source Folder';
+          }
+          setStatus('Folder selected. Click Add Source Folder to save it.');
+        } catch (e) { setStatus(e.message, true); }
+      }
 
       async function loadSetup() {
         try {
@@ -157,7 +186,7 @@
       async function addSourceFolder() {
         try {
           const path = document.querySelector('#folder').value.trim();
-          if (!path) throw new Error('Enter a folder path first.');
+          if (!path) throw new Error('Choose, type, or paste a folder path first.');
           setStatus('Adding source folder...');
           const folder = await jsonFetch('/api/v1/source-folders', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path, display_name: document.querySelector('#display_name').value || null, actor: actor(), recursive: true, include_hidden: false }) });
           state.selectedSourceId = folder.id;
@@ -238,11 +267,14 @@
 
       document.querySelector('#search').addEventListener('click', search);
       document.querySelector('#refresh').addEventListener('click', search);
+      document.querySelector('#browse-source').addEventListener('click', browseSourceFolder);
+      document.querySelector('#use-prefill').addEventListener('click', () => setStatus('Typed folder path ready. Click Add Source Folder to save it.'));
       document.querySelector('#add-source').addEventListener('click', addSourceFolder);
       document.querySelector('#index-source').addEventListener('click', indexSelectedSourceFolder);
       document.querySelector('#index-top').addEventListener('click', indexSelectedSourceFolder);
       document.querySelector('#remove-source').addEventListener('click', removeSelectedSourceFolder);
       document.querySelector('#health').addEventListener('click', async () => { try { const cfg = await jsonFetch('/api/v1/runtime/config'); setStatus(`Health OK. Database mode: ${cfg.database_mode}.`); } catch(e) { setStatus(e.message, true); } });
+      loadDesktopCapabilities();
       loadSetup();
     </script>
   </body>
