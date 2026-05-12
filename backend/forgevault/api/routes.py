@@ -27,6 +27,11 @@ from ..schemas import (
     FileVersionDetailRead,
     JobBoss2ExportRequest,
     IntegrationEventRead,
+    SetupStatusRead,
+    SourceFolderCreate,
+    SourceFolderIndexRequest,
+    SourceFolderRead,
+    SourceFolderRemove,
 )
 from ..services.folder_ingestion import ingest_folder as run_folder_ingest
 from ..services.ingestion import ingest_file as run_ingest
@@ -34,6 +39,7 @@ from ..services.integrations import export_release_package_to_jobboss2
 from ..services.lifecycle import transition_record
 from ..services.metadata import create_record
 from ..services.search import search_records
+from ..services.source_folders import add_source_folder, index_source_folder, list_source_folders, remove_source_folder, setup_status
 from ..services.versioning import active_checkout, cancel_checkout, check_out
 
 router = APIRouter()
@@ -63,6 +69,58 @@ def runtime_config():
         jobboss2_outbox_root=settings.jobboss2_outbox_root,
         auto_create_schema=settings.auto_create_schema,
     )
+
+
+@router.get("/setup/status", response_model=SetupStatusRead)
+def get_setup_status(session: Session = Depends(get_session)):
+    return setup_status(session)
+
+
+@router.get("/source-folders", response_model=list[SourceFolderRead])
+def get_source_folders(include_inactive: bool = False, session: Session = Depends(get_session)):
+    return list_source_folders(session, include_inactive=include_inactive)
+
+
+@router.post("/source-folders", response_model=SourceFolderRead, status_code=status.HTTP_201_CREATED)
+def create_source_folder(payload: SourceFolderCreate, session: Session = Depends(get_session)):
+    try:
+        folder = add_source_folder(
+            session,
+            path=payload.path,
+            display_name=payload.display_name,
+            actor=payload.actor,
+            recursive=payload.recursive,
+            include_hidden=payload.include_hidden,
+        )
+        session.commit()
+        return folder
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.delete("/source-folders/{source_folder_id}", response_model=SourceFolderRead)
+def deactivate_source_folder(source_folder_id: UUID, payload: SourceFolderRemove, session: Session = Depends(get_session)):
+    if not payload.confirm_remove_from_index_only:
+        raise HTTPException(status_code=422, detail="confirm_remove_from_index_only must be true; this action never deletes files from disk")
+    try:
+        folder = remove_source_folder(session, source_folder_id=source_folder_id, actor=payload.actor)
+        session.commit()
+        return folder
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/source-folders/{source_folder_id}/index", response_model=FolderIngestRead)
+def index_saved_source_folder(source_folder_id: UUID, payload: SourceFolderIndexRequest, session: Session = Depends(get_session)):
+    try:
+        result = index_source_folder(session, source_folder_id=source_folder_id, actor=payload.actor, max_files=payload.max_files)
+        session.commit()
+        return result
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/records", response_model=RecordRead, status_code=status.HTTP_201_CREATED)
