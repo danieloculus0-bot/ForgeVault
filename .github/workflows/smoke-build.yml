@@ -1,0 +1,65 @@
+name: ForgeVault smoke and build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  smoke-linux:
+    name: Linux smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ForgeVault
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[dev]"
+
+      - name: Run CI smoke script
+        run: python scripts/ci_smoke.py
+
+  smoke-windows:
+    name: Windows smoke test and EXE build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ForgeVault
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[dev]"
+
+      - name: Run CI smoke script
+        shell: pwsh
+        run: python scripts/ci_smoke.py
+
+      - name: Generate Windows icon
+        shell: pwsh
+        run: .\scripts\Make-ForgeVaultIcon.ps1
+
+      - name: Build ForgeVault.exe
+        shell: pwsh
+        run: .\scripts\Build-ForgeVaultExe.ps1
+
+      - name: Upload Windows EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForgeVault-Windows-Exe
+          path: dist/ForgeVault.exe
