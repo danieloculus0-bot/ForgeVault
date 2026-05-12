@@ -67,6 +67,23 @@ class FileVersionRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CheckInRequest(BaseModel):
+    actor: str
+    file_path: str
+    note: str | None = None
+    customer_revision: str | None = None
+    internal_revision: str | None = None
+    submit_for_review: bool = True
+    assigned_checker: str | None = None
+    risk_level: str = "low"
+
+
+class CheckInRead(BaseModel):
+    record: RecordRead
+    file_version: FileVersionRead
+    review: "ReviewRequestRead | None" = None
+
+
 class CheckoutCreate(BaseModel):
     actor: str
     reason: str | None = None
