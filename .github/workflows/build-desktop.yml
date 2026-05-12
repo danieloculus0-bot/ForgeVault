@@ -40,13 +40,32 @@ jobs:
           pyinstaller --noconfirm --clean --name ForgeVaultDesktop --onefile --collect-all forgevault --add-data "frontend;frontend" backend/forgevault/desktop.py
           New-Item -ItemType Directory -Force -Path artifact | Out-Null
           Copy-Item dist/ForgeVaultDesktop.exe artifact/ForgeVaultDesktop.exe
+          Copy-Item dist/ForgeVaultDesktop.exe artifact/START-FORGEVAULT.exe
           @"
-          ForgeVault Desktop
+          ForgeVault Desktop - Quick Start
 
-          Run ForgeVaultDesktop.exe to launch the local ForgeVault desktop server and browser UI.
-          Default local URL: http://127.0.0.1:8765/ui
-          Default data folder: %LOCALAPPDATA%\ForgeVault
-          "@ | Set-Content -Encoding UTF8 artifact/README.txt
+          1. Unzip this folder somewhere simple, such as Desktop\ForgeVault.
+          2. Double-click START-FORGEVAULT.exe.
+          3. Your browser should open automatically.
+          4. In the left panel, click Browse for Source Folder or paste a folder path.
+          5. Click Add Source Folder.
+          6. Click Index Selected.
+          7. Search UNMAPPED to find files that need cleanup.
+
+          Safe rule:
+          ForgeVault indexes files and copies managed versions into its local vault. Removing a source folder from the UI removes it from the ForgeVault index only. It does not delete your real files.
+
+          Default local URL:
+          http://127.0.0.1:8765/ui
+
+          Default data folder:
+          %LOCALAPPDATA%\ForgeVault
+          "@ | Set-Content -Encoding UTF8 artifact/START-HERE.txt
+          @"
+          @echo off
+          cd /d "%~dp0"
+          start "" "%~dp0START-FORGEVAULT.exe"
+          "@ | Set-Content -Encoding ASCII artifact/START-FORGEVAULT.bat
 
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
