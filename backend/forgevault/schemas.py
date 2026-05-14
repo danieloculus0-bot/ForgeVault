@@ -119,6 +119,8 @@ class RuntimeConfigRead(BaseModel):
     staging_root: str
     jobboss2_outbox_root: str
     auto_create_schema: bool
+    desktop_bridge_enabled: bool
+    runtime_mode: str
 
 
 class SetupStatusRead(BaseModel):
