@@ -4,59 +4,59 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
-    <title>ForgeVault Desktop</title>
+    <title>ForgeVault</title>
     <style>
-      :root { color-scheme: dark; --bg:#0a0d10; --panel:#111820; --panel2:#151e27; --panel3:#1b2631; --line:#303b47; --line2:#43505f; --text:#e6ebf2; --muted:#9aa7b6; --muted2:#748293; --accent:#f08a2b; --accent2:#bb641f; --danger:#b74a4a; }
+      :root { color-scheme: dark; --bg:#0a0d10; --panel:#111820; --panel2:#151e27; --panel3:#1b2631; --line:#303b47; --line2:#43505f; --text:#e6ebf2; --muted:#9aa7b6; --muted2:#748293; --accent:#f08a2b; --accent2:#bb641f; --danger:#b74a4a; --ok:#6fa879; --warn:#c69042; }
       * { box-sizing: border-box; }
       html, body { height: 100%; }
       body { margin:0; font-family:"Segoe UI", Roboto, system-ui, sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
-      .app { height:100%; display:grid; grid-template-rows:48px 1fr 28px; }
-      .topbar { display:grid; grid-template-columns:210px 1fr auto; gap:12px; align-items:center; padding:0 14px; background:#0d1218; border-bottom:1px solid var(--line); }
-      .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.02em; }
-      .mark { width:22px; height:22px; position:relative; }
-      .mark:before, .mark:after, .mark span { content:""; position:absolute; left:2px; width:18px; height:8px; background:var(--accent); transform:skewY(-32deg); border-radius:1px; }
-      .mark:before { top:1px; opacity:.95; } .mark span { top:8px; opacity:.72; } .mark:after { top:15px; opacity:.46; }
-      .pathbar { color:var(--muted); border:1px solid var(--line); background:#080c10; border-radius:4px; padding:8px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .app { height:100%; display:grid; grid-template-rows:52px 1fr 30px; }
+      .topbar { display:grid; grid-template-columns:220px 1fr auto; gap:12px; align-items:center; padding:0 14px; background:#0d1218; border-bottom:1px solid var(--line); }
+      .brand { display:flex; align-items:center; gap:10px; font-weight:850; letter-spacing:.02em; }
+      .mark { width:24px; height:24px; position:relative; filter:drop-shadow(0 0 10px rgba(240,138,43,.22)); }
+      .mark:before, .mark:after, .mark span { content:""; position:absolute; left:2px; width:20px; height:8px; background:var(--accent); transform:skewY(-32deg); border-radius:2px; }
+      .mark:before { top:1px; opacity:.98; } .mark span { top:8px; opacity:.74; } .mark:after { top:15px; opacity:.48; }
+      .pathbar { color:var(--muted); border:1px solid var(--line); background:#080c10; border-radius:6px; padding:8px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .actions { display:flex; gap:8px; align-items:center; }
-      button { border:1px solid var(--line2); background:#202b36; color:var(--text); border-radius:4px; padding:8px 12px; cursor:pointer; font-weight:600; }
+      button { border:1px solid var(--line2); background:#202b36; color:var(--text); border-radius:6px; padding:8px 12px; cursor:pointer; font-weight:650; }
       button.primary { background:var(--accent); border-color:var(--accent2); color:#16100a; }
       button.danger { background:#161a20; border-color:var(--danger); color:#e2b8b8; }
       button.compact { padding:5px 8px; font-size:12px; }
       button.ghost { background:#111820; border-color:var(--line); color:var(--muted); }
       button:disabled { opacity:.48; cursor:not-allowed; }
       button:hover:not(:disabled) { filter:brightness(1.08); }
-      input, textarea, select { width:100%; border:1px solid var(--line); background:#080c10; color:var(--text); border-radius:4px; padding:8px 10px; outline:none; font-family:inherit; }
+      input, textarea, select { width:100%; border:1px solid var(--line); background:#080c10; color:var(--text); border-radius:6px; padding:8px 10px; outline:none; font-family:inherit; }
       textarea { min-height:74px; resize:vertical; }
-      input:focus, textarea:focus, select:focus { border-color:var(--accent); }
+      input:focus, textarea:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(240,138,43,.12); }
       label { display:grid; gap:5px; color:var(--muted); font-size:12px; }
-      .workspace { min-height:0; display:grid; grid-template-columns:310px 1fr 430px; }
+      .workspace { min-height:0; display:grid; grid-template-columns:320px 1fr 440px; }
       .pane { min-height:0; border-right:1px solid var(--line); background:var(--panel); }
       .pane.right { border-right:0; border-left:1px solid var(--line); }
-      .pane-title { height:38px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid var(--line); color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+      .pane-title { height:40px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid var(--line); color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
       .pane-title .mini-actions { display:flex; gap:6px; text-transform:none; letter-spacing:0; }
-      .pane-body { height:calc(100% - 38px); overflow:auto; padding:10px; }
+      .pane-body { height:calc(100% - 40px); overflow:auto; padding:10px; }
       .source-box { display:grid; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:10px; }
-      .setup-card { border:1px solid var(--line); background:#0d1319; border-radius:6px; padding:10px; color:var(--muted); font-size:13px; line-height:1.35; margin-bottom:10px; }
-      .source-row, .queue-row, .note-row { display:grid; gap:3px; padding:8px; border:1px solid transparent; border-radius:5px; color:var(--muted); }
+      .setup-card { border:1px solid var(--line); background:#0d1319; border-radius:8px; padding:10px; color:var(--muted); font-size:13px; line-height:1.35; margin-bottom:10px; }
+      .source-row, .queue-row, .note-row { display:grid; gap:3px; padding:9px; border:1px solid transparent; border-radius:7px; color:var(--muted); }
       .source-row { cursor:pointer; }
       .source-row.active, .source-row:hover, .queue-row:hover, .note-row:hover { background:#202b36; color:var(--text); border-color:#344353; }
-      .source-title, .queue-title, .note-title { font-weight:700; color:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .source-title, .queue-title, .note-title { font-weight:750; color:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .source-path, .queue-sub, .note-sub { font-size:12px; color:var(--muted2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .source-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
       .path-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-      .main { min-width:0; background:#0d1218; display:grid; grid-template-rows:54px 1fr; }
+      .main { min-width:0; background:#0d1218; display:grid; grid-template-rows:56px 1fr; }
       .searchbar { display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); background:#101720; }
       table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
       thead { position:sticky; top:0; background:#1b2631; z-index:1; }
       th, td { border-bottom:1px solid #202a35; padding:8px 10px; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      th { color:var(--muted); font-weight:600; }
+      th { color:var(--muted); font-weight:650; }
       tbody tr { cursor:pointer; } tbody tr:hover, tbody tr.selected { background:#1b2631; }
-      .name { color:var(--text); font-weight:600; } .muted { color:var(--muted); }
+      .name { color:var(--text); font-weight:650; } .muted { color:var(--muted); }
       .pill { display:inline-block; border:1px solid var(--line2); border-radius:999px; padding:2px 8px; color:var(--muted); background:#121a22; font-size:12px; }
       .pill.pending { color:#e7c799; border-color:#735b35; } .pill.approved { color:#b8d8be; border-color:#4f7658; } .pill.rejected { color:#e2b8b8; border-color:#8d4b4b; }
-      .preview { height:220px; display:grid; place-items:center; background:#080c10; border:1px solid var(--line); border-radius:6px; margin-bottom:12px; }
+      .preview { height:220px; display:grid; place-items:center; background:radial-gradient(circle at 50% 0%, #182334, #080c10 72%); border:1px solid var(--line); border-radius:8px; margin-bottom:12px; }
       .preview-card { text-align:center; color:var(--muted); }
-      .preview-icon { width:92px; height:112px; margin:0 auto 12px; border:1px solid var(--line2); border-radius:6px; background:linear-gradient(180deg,#202a35,#111820); display:grid; place-items:center; font-size:22px; font-weight:800; color:var(--accent); }
+      .preview-icon { width:92px; height:112px; margin:0 auto 12px; border:1px solid var(--line2); border-radius:8px; background:linear-gradient(180deg,#202a35,#111820); display:grid; place-items:center; font-size:22px; font-weight:850; color:var(--accent); }
       .detail h2 { margin:0 0 4px; font-size:20px; } .detail .sub { color:var(--muted); margin-bottom:12px; }
       .meta { display:grid; grid-template-columns:120px 1fr; gap:6px 10px; font-size:13px; margin:12px 0; }
       .meta div:nth-child(odd) { color:var(--muted); }
@@ -67,14 +67,14 @@
       .section-title { color:var(--muted); text-transform:uppercase; font-size:12px; letter-spacing:.04em; margin:12px 0 6px; }
       .footer { display:flex; align-items:center; padding:0 10px; background:#090d11; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
       .error { color:#df9c9c; }
-      @media (max-width:1100px) { .workspace { grid-template-columns:260px 1fr; } .pane.right { display:none; } }
+      @media (max-width:1100px) { .workspace { grid-template-columns:270px 1fr; } .pane.right { display:none; } }
     </style>
   </head>
   <body>
     <div class="app">
       <div class="topbar">
         <div class="brand"><div class="mark"><span></span></div><div>ForgeVault</div></div>
-        <div id="pathbar" class="pathbar">Local Vault starting...</div>
+        <div id="pathbar" class="pathbar">Vault starting...</div>
         <div class="actions"><button id="health">Health</button><button id="index-top" class="primary">Index Selected</button></div>
       </div>
 
@@ -84,9 +84,9 @@
           <div class="pane-body">
             <div id="setup" class="setup-card">Checking setup...</div>
             <div class="source-box">
-              <label>Folder path<input id="folder" placeholder="P:\\Blue Prints or C:\\Engineering\\Jobs" /></label>
+              <label>Folder path<input id="folder" placeholder="Choose or paste the folder ForgeVault should manage" /></label>
               <div class="path-actions"><button id="browse-source" disabled>Browse for Source Folder</button><button id="use-prefill">Use Typed Path</button></div>
-              <label>Display name<input id="display_name" placeholder="Optional, example: Blue Prints" /></label>
+              <label>Display name<input id="display_name" placeholder="Optional friendly name" /></label>
               <label>User<input id="actor" value="desktop" /></label>
               <button id="add-source" class="primary">Add Source Folder</button>
             </div>
@@ -97,7 +97,7 @@
 
         <main class="main">
           <div class="searchbar">
-            <input id="q" placeholder="Search file name, part number, revision, path, metadata..." />
+            <input id="q" placeholder="Search file name, part number, revision, path, metadata, or UNMAPPED" />
             <button id="search">Search</button>
             <button id="refresh">Refresh</button>
           </div>
@@ -110,10 +110,10 @@
         </main>
 
         <aside class="pane right">
-          <div class="pane-title"><span id="right-title">Preview / Details</span><div class="mini-actions"><button id="show-details" class="compact ghost">Details</button><button id="show-reviews" class="compact ghost">Reviews</button><button id="show-notes" class="compact ghost">Notifications</button></div></div>
+          <div class="pane-title"><span id="right-title">Record Details</span><div class="mini-actions"><button id="show-details" class="compact ghost">Details</button><button id="show-reviews" class="compact ghost">Reviews</button><button id="show-notes" class="compact ghost">Notifications</button></div></div>
           <div id="detail" class="pane-body detail">
             <div class="preview"><div class="preview-card"><div class="preview-icon">FV</div><div>Select a file or record</div></div></div>
-            <p class="muted">Preview, metadata, versions, checkout state, dependencies, and release actions appear here.</p>
+            <p class="muted">Select a record to see metadata, versions, checkout state, review actions, and release controls.</p>
           </div>
         </aside>
       </div>
@@ -123,7 +123,7 @@
 
     <script>
       const params = new URLSearchParams(location.search);
-      const state = { records: [], sourceFolders: [], selectedSourceId: null, selectedRecordIndex: null, lastQuery: 'UNMAPPED', desktopBridge: false, rightPanel: 'details' };
+      const state = { records: [], sourceFolders: [], selectedSourceId: null, selectedRecordIndex: null, lastQuery: 'UNMAPPED', desktopBridge: false, rightPanel: 'details', runtimeMode: 'unknown' };
       if (params.get('folder')) document.querySelector('#folder').value = params.get('folder');
 
       function setStatus(message, error=false) { const el = document.querySelector('#status'); el.textContent = message; el.className = error ? 'footer error' : 'footer'; }
@@ -134,6 +134,25 @@
       function actor() { return document.querySelector('#actor').value || 'desktop'; }
       function selectedSource() { return state.sourceFolders.find(f => f.id === state.selectedSourceId) || null; }
       function selectedRecord() { return state.selectedRecordIndex === null ? null : state.records[state.selectedRecordIndex]; }
+
+      async function loadRuntimeConfig() {
+        try {
+          const cfg = await jsonFetch('/api/v1/runtime/config');
+          state.runtimeMode = cfg.runtime_mode || 'unknown';
+          state.desktopBridge = !!cfg.desktop_bridge_enabled;
+          document.querySelector('#browse-source').disabled = !state.desktopBridge;
+          if (state.runtimeMode === 'cloud_demo') {
+            document.querySelector('#actor').value = 'cloud-demo';
+            document.querySelector('#folder').placeholder = 'Use ./demo_source or a workspace folder path';
+            document.querySelector('#display_name').placeholder = 'Example: Demo Source';
+          }
+          return cfg;
+        } catch (e) {
+          state.runtimeMode = 'unknown';
+          document.querySelector('#browse-source').disabled = true;
+          return null;
+        }
+      }
 
       async function loadDesktopCapabilities() {
         try {
@@ -149,7 +168,7 @@
 
       async function browseSourceFolder() {
         try {
-          if (!state.desktopBridge) throw new Error('Folder browsing is available when launched from ForgeVault Desktop. You can still type or paste a path.');
+          if (!state.desktopBridge) throw new Error('Folder browsing is available in the Windows desktop build. You can still type or paste a workspace path.');
           setStatus('Opening folder browser...');
           const current = document.querySelector('#folder').value || null;
           const result = await jsonFetch('/api/v1/desktop/browse-folder', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title:'Choose a source folder for ForgeVault', initial_dir: current }) });
@@ -163,7 +182,8 @@
       async function loadSetup() {
         try {
           const setup = await jsonFetch('/api/v1/setup/status');
-          document.querySelector('#setup').innerHTML = `<strong>${esc(setup.ready ? 'Local Vault Ready' : 'Setup Needed')}</strong><br>${esc(setup.message)}<br><span class="muted">${setup.source_folder_count} source folder(s) configured.</span>`;
+          const modeLabel = setup.mode === 'cloud_demo' ? 'Cloud Demo Ready' : 'Local Vault Ready';
+          document.querySelector('#setup').innerHTML = `<strong>${esc(setup.ready ? modeLabel : 'Setup Needed')}</strong><br>${esc(setup.message)}<br><span class="muted">${setup.source_folder_count} source folder(s) configured.</span>`;
           await loadSourceFolders();
         } catch (e) { setStatus(e.message, true); document.querySelector('#setup').textContent = 'Setup check failed.'; }
       }
@@ -180,7 +200,7 @@
         const el = document.querySelector('#sources');
         if (!state.sourceFolders.length) {
           el.innerHTML = '<div class="source-row active"><div class="source-title">No source folders yet</div><div class="source-path">Add one to start indexing.</div></div>';
-          document.querySelector('#pathbar').textContent = 'No source folder configured yet';
+          document.querySelector('#pathbar').textContent = state.runtimeMode === 'cloud_demo' ? 'Cloud demo: no workspace folder configured yet' : 'No source folder configured yet';
           return;
         }
         el.innerHTML = state.sourceFolders.map(f => `<div class="source-row ${f.id === state.selectedSourceId ? 'active' : ''}" data-id="${f.id}"><div class="source-title">${esc(f.display_name)}</div><div class="source-path" title="${esc(f.path)}">${esc(f.path)}</div><div class="source-path">${f.recursive ? 'Recursive' : 'Top folder only'} · ${f.last_indexed_at ? 'Last indexed ' + new Date(f.last_indexed_at).toLocaleString() : 'Not indexed yet'}</div></div>`).join('');
@@ -244,9 +264,9 @@
       async function selectRecord(index) { state.selectedRecordIndex = index; document.querySelectorAll('#records tr').forEach(row => row.classList.remove('selected')); const row = document.querySelector(`#records tr[data-index="${index}"]`); if (row) row.classList.add('selected'); state.rightPanel = 'details'; await renderDetail(state.records[index]); }
 
       async function renderDetail(item) {
-        document.querySelector('#right-title').textContent = 'Preview / Details';
+        document.querySelector('#right-title').textContent = 'Record Details';
         const el = document.querySelector('#detail');
-        if (!item) { el.innerHTML = '<div class="preview"><div class="preview-card"><div class="preview-icon">FV</div><div>Select a file or record</div></div></div><p class="muted">Preview, metadata, versions, checkout state, dependencies, and release actions appear here.</p>'; return; }
+        if (!item) { el.innerHTML = '<div class="preview"><div class="preview-card"><div class="preview-icon">FV</div><div>Select a file or record</div></div></div><p class="muted">Select a record to see metadata, versions, checkout state, review actions, and release controls.</p>'; return; }
         const r = item.record; const v = item.latest_version; const name = v?.filename || '(no file version)'; const type = ext(name); const fileType = v?.version_metadata?.file_type?.label || type;
         let checkoutText = 'Checking checkout status...';
         try { const status = await jsonFetch(`/api/v1/records/${encodeURIComponent(r.internal_record_id)}/checkout`); checkoutText = status.is_checked_out ? `Checked out by ${status.checkout.checked_out_by}` : 'Available for checkout'; } catch (e) { checkoutText = e.message; }
@@ -274,7 +294,7 @@
           const item = selectedRecord();
           if (!item) throw new Error('Select a record first.');
           const r = item.record; const v = item.latest_version; const checker = prompt('Checker email/name (optional):', '') || null;
-          const review = await jsonFetch('/api/v1/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ request_type:'pending_checkin', submitted_by: actor(), assigned_checker: checker, entity_type:'records', entity_id:r.internal_record_id, record_id:r.id, file_version_id:v?.id || null, summary:`Review ${v?.filename || r.internal_record_id}`, reason:'Submitted from ForgeVault Desktop', risk_level:r.customer_part_number === 'UNMAPPED' ? 'medium' : 'low', details:{ source:'desktop_ui', file_name:v?.filename || null, source_path:v?.original_source_path || null } }) });
+          const review = await jsonFetch('/api/v1/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ request_type:'pending_checkin', submitted_by: actor(), assigned_checker: checker, entity_type:'records', entity_id:r.internal_record_id, record_id:r.id, file_version_id:v?.id || null, summary:`Review ${v?.filename || r.internal_record_id}`, reason:'Submitted from ForgeVault UI', risk_level:r.customer_part_number === 'UNMAPPED' ? 'medium' : 'low', details:{ source:'web_ui', file_name:v?.filename || null, source_path:v?.original_source_path || null } }) });
           setStatus(`Review submitted: ${review.summary}`);
           await showReviews();
         } catch (e) { setStatus(e.message, true); }
@@ -324,9 +344,8 @@
       document.querySelector('#show-details').addEventListener('click', showDetailsPanel);
       document.querySelector('#show-reviews').addEventListener('click', showReviews);
       document.querySelector('#show-notes').addEventListener('click', showNotifications);
-      document.querySelector('#health').addEventListener('click', async () => { try { const cfg = await jsonFetch('/api/v1/runtime/config'); setStatus(`Health OK. Database mode: ${cfg.database_mode}.`); } catch(e) { setStatus(e.message, true); } });
-      loadDesktopCapabilities();
-      loadSetup();
+      document.querySelector('#health').addEventListener('click', async () => { try { const cfg = await jsonFetch('/api/v1/runtime/config'); setStatus(`Health OK. Mode: ${cfg.runtime_mode}; database: ${cfg.database_mode}.`); } catch(e) { setStatus(e.message, true); } });
+      loadRuntimeConfig().then(loadDesktopCapabilities).then(loadSetup);
     </script>
   </body>
 </html>
