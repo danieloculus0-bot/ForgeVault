@@ -54,6 +54,8 @@ def main() -> None:
             raise AssertionError("UI check-in script was not injected into /ui")
         if "Start here" not in ui.text or "Choose Folder Now" not in ui.text:
             raise AssertionError("UI onboarding helper was not injected into /ui")
+        if "releaseSelectedRecord" not in ui.text or "fv-empty-help" not in ui.text:
+            raise AssertionError("UI polish helper was not injected into /ui")
 
         caps = assert_status(client.get("/api/v1/desktop/capabilities"))
         if not caps.get("desktop_bridge_enabled"):
@@ -159,6 +161,24 @@ def main() -> None:
         )
         if decided["status"] != "approved":
             raise AssertionError(decided)
+
+        review_move = assert_status(
+            client.post(
+                f"/api/v1/records/{record_id}/lifecycle",
+                json={"actor": "ci", "to_state": "Review", "reason": "CI release smoke moves through review"},
+            )
+        )
+        if review_move["state"] != "Review" or review_move["release_package_id"] is not None:
+            raise AssertionError(f"unexpected review transition result: {review_move}")
+
+        release_move = assert_status(
+            client.post(
+                f"/api/v1/records/{record_id}/lifecycle",
+                json={"actor": "ci", "to_state": "Released", "reason": "CI release smoke"},
+            )
+        )
+        if release_move["state"] != "Released" or not release_move["release_package_id"] or not release_move["package_number"]:
+            raise AssertionError(f"release did not create package: {release_move}")
 
         notifications = assert_status(client.get("/api/v1/notifications"))
         event_types = {item["event_type"] for item in notifications}
