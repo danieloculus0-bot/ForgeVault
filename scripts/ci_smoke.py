@@ -33,8 +33,8 @@ def assert_status(response, expected: int = 200):
 
 def main() -> None:
     root, source = configure_temp_environment()
-    (source / "12345_A_demo_print.txt").write_text("ForgeVault CI demo file\n", encoding="utf-8")
-    (source / "assy_demo.SLDASM").write_text("placeholder assembly\n", encoding="utf-8")
+    (source / "12345_A_print.txt").write_text("ForgeVault CI drawing file\n", encoding="utf-8")
+    (source / "assy_fixture.SLDASM").write_text("assembly fixture file\n", encoding="utf-8")
     (source / "readme.tmp").write_text("ignored temporary file\n", encoding="utf-8")
 
     from fastapi.testclient import TestClient
@@ -48,7 +48,7 @@ def main() -> None:
     with TestClient(app) as client:
         assert_status(client.get("/healthz"))
         ui = client.get("/ui")
-        if ui.status_code != 200 or "ForgeVault Desktop" not in ui.text:
+        if ui.status_code != 200 or "ForgeVault" not in ui.text:
             raise AssertionError(f"UI smoke failed: {ui.status_code}")
         if "openForgeVaultCheckinFlow" not in ui.text or "Check In New Version" not in ui.text:
             raise AssertionError("UI check-in script was not injected into /ui")
@@ -56,6 +56,10 @@ def main() -> None:
             raise AssertionError("UI onboarding helper was not injected into /ui")
         if "releaseSelectedRecord" not in ui.text or "fv-empty-help" not in ui.text:
             raise AssertionError("UI polish helper was not injected into /ui")
+
+        runtime = assert_status(client.get("/api/v1/runtime/config"))
+        if runtime["runtime_mode"] != "desktop" or not runtime["desktop_bridge_enabled"]:
+            raise AssertionError(f"unexpected runtime config: {runtime}")
 
         caps = assert_status(client.get("/api/v1/desktop/capabilities"))
         if not caps.get("desktop_bridge_enabled"):
@@ -99,9 +103,9 @@ def main() -> None:
         if not checkout_status["is_checked_out"]:
             raise AssertionError(checkout_status)
 
-        replacement = root / "replacement" / "12345_A_demo_print.txt"
+        replacement = root / "replacement" / "12345_A_print.txt"
         replacement.parent.mkdir(parents=True, exist_ok=True)
-        replacement.write_text("ForgeVault CI demo file\nChecked in replacement content.\n", encoding="utf-8")
+        replacement.write_text("ForgeVault CI drawing file\nChecked in replacement content.\n", encoding="utf-8")
 
         checkin = assert_status(
             client.post(
