@@ -70,6 +70,8 @@ def runtime_config():
         prefix, rest = safe_database_url.split("://", 1)
         if "@" in rest:
             safe_database_url = f"{prefix}://***:***@{rest.split('@', 1)[1]}"
+    desktop_bridge_enabled = settings.enable_desktop_bridge
+    runtime_mode = "desktop" if desktop_bridge_enabled else "cloud_demo"
     return RuntimeConfigRead(
         database_url=safe_database_url,
         database_mode=database_mode,
@@ -77,6 +79,8 @@ def runtime_config():
         staging_root=settings.staging_root,
         jobboss2_outbox_root=settings.jobboss2_outbox_root,
         auto_create_schema=settings.auto_create_schema,
+        desktop_bridge_enabled=desktop_bridge_enabled,
+        runtime_mode=runtime_mode,
     )
 
 
