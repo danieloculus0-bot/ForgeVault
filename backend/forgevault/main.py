@@ -35,7 +35,7 @@ def frontend_index_path() -> Path:
 
 def inject_optional_desktop_scripts(html: str) -> str:
     scripts = []
-    for filename in ("onboarding-ui.js", "checkin-ui.js"):
+    for filename in ("onboarding-ui.js", "checkin-ui.js", "polish-ui.js"):
         try:
             scripts.append(frontend_asset_path(filename).read_text(encoding="utf-8"))
         except FileNotFoundError:
