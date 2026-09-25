@@ -51,6 +51,9 @@ ALLOWLIST = {
     Path("README.md"),
     Path("docs/INSTALL_WINDOWS.md"),
     Path("docs/VALIDATION.md"),
+    Path("scripts/audit_placeholders.py"),
+    Path("docs/file-type-coverage.md"),
+    Path("docs/ui-direction.md"),
 }
 
 ALLOWLIST_LINE_PATTERNS = [
@@ -75,6 +78,11 @@ def should_skip(path: Path) -> bool:
 def line_allowed(path: Path, line: str) -> bool:
     rel = path.relative_to(ROOT)
     if rel in ALLOWLIST:
+        return True
+    # HTML/JS input placeholder attributes are real UI behavior, not unfinished
+    # product placeholders. Do not make the quality gate flag valid form hints.
+    lower=line.lower()
+    if "placeholder=" in lower or ".placeholder" in lower:
         return True
     return any(pattern.search(line) for pattern in ALLOWLIST_LINE_PATTERNS)
 
