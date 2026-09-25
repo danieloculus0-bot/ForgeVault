@@ -64,6 +64,10 @@ def check_in_bytes(
         actor=actor,
     )
 
+    # The review must reference the durable version UUID. append_version_bytes
+    # adds the row to the session, but its default UUID is assigned on flush.
+    session.flush()
+
     audit(
         session,
         actor=actor,
