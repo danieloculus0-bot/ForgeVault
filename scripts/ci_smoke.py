@@ -127,7 +127,9 @@ def main() -> None:
         version = checkin["file_version"]
         if version["version_number"] != 2:
             raise AssertionError(f"expected checked-in version 2, got {version}")
-        if version["filename"] != replacement.name or version["original_source_path"] != str(replacement):
+        returned_path = os.path.normcase(os.path.normpath(version["original_source_path"]))
+        expected_path = os.path.normcase(os.path.normpath(str(replacement.resolve())))
+        if version["filename"] != replacement.name or returned_path != expected_path:
             raise AssertionError(f"check-in version did not use replacement file path: {version}")
         if version["customer_revision"] != "B" or version["internal_revision"] != "002":
             raise AssertionError(f"check-in revision mapping failed: {version}")
@@ -190,7 +192,8 @@ def main() -> None:
             raise AssertionError(f"expected review requested/approved notifications, got {notifications}")
 
         removed = assert_status(
-            client.delete(
+            client.request(
+                "DELETE",
                 f"/api/v1/source-folders/{folder['id']}",
                 json={"actor": "ci", "confirm_remove_from_index_only": True},
             )
