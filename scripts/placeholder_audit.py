@@ -50,6 +50,7 @@ ALLOWLIST = {
     Path("scripts/placeholder_audit.py"),
     Path("README.md"),
     Path("docs/INSTALL_WINDOWS.md"),
+    Path("docs/VALIDATION.md"),
 }
 
 ALLOWLIST_LINE_PATTERNS = [
