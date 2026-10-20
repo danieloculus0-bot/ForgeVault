@@ -177,8 +177,12 @@ python scripts/ci_smoke.py
 pytest
 ```
 
-## Repository audit note and packaging blocker (2026-10-20)
+## Repository audit and current verification (2026-10-20)
 
-**Status: implemented local PDM workflows with split Windows packaging evidence.** September 25 ForgeVault tests, CI, and Desktop Build passed; the separate [ForgeVault smoke and build workflow](https://github.com/danieloculus0-bot/ForgeVault/actions/runs/36079131684) **failed on Windows during icon generation**, because the Cairo shared library (`cairo-2` / `libcairo-2.dll`) was missing. Its Linux smoke job succeeded. Fix the icon-generation dependency or use a supported checked-in icon before treating every Windows build route as green. A passing CI run does **not** independently prove a local user has booted the executable and successfully indexed real shop files.
+**Status: local PDM backbone with real storage integrity and a read-only controlled inspection handoff.** ForgeVault's object store now stages and flushes writes before atomic commit, checks the stored content against its SHA-256 identifier on retrieval and rejects mismatched bytes. Corruption, interruption and concurrent-upload tests run on both Linux and Windows. All four ForgeVault test/CI/build workflows passed on the released code. The earlier September Windows Cairo icon-conversion failure is **resolved** by removing optional CairoSVG icon generation from the clean-runner build path; executable branding remains a separate optional operation.
 
-ForgeVault is the planned document/revision owner for future [EZ-FAIR](https://github.com/danieloculus0-bot/EZ-FAIR) and [EZ-FEA](https://github.com/danieloculus0-bot/EZ-FEA) artifacts; that cross-repository metadata workflow is **not yet connected**. [Portfolio audit](https://github.com/danieloculus0-bot/Axiom_Beta/blob/main/docs/PORTFOLIO_AUDIT_2026-10-20.md).
+The implemented [released drawing handoff](backend/forgevault/services/fai_handoff.py) returns the exact selected PDF version only if the record is released, the version is in the matching release package and the actual file matches the vault digest. The real [ForgeVault → EZ-FAIR → Axiom test](https://github.com/danieloculus0-bot/Axiom_Beta/actions/workflows/controlled-fai-wiring.yml) passed on Windows and Ubuntu. This proves the tested local integration contract; it does **not** imply a live shop deployment or a secure cross-network API.
+
+The browser PDM frontend uses the BEAN Gothic Lime charcoal/steel/lime theme aligned with Axiom and the BEAN site. Cross-app version provenance is accessible in the Axiom FAI workspace. Physical-site rollout, restore drills, user authentication, recovery guarantees, live JobBOSS² synchronization, and full multiuser deployment remain separate release gates.
+
+[Portfolio audit](https://github.com/danieloculus0-bot/Axiom_Beta/blob/main/docs/PORTFOLIO_AUDIT_2026-10-20.md).
