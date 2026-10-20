@@ -176,3 +176,9 @@ It is not production-ready yet. The next work should focus on installer polish, 
 python scripts/ci_smoke.py
 pytest
 ```
+
+## Repository audit note and packaging blocker (2026-10-20)
+
+**Status: implemented local PDM workflows with split Windows packaging evidence.** September 25 ForgeVault tests, CI, and Desktop Build passed; the separate [ForgeVault smoke and build workflow](https://github.com/danieloculus0-bot/ForgeVault/actions/runs/36079131684) **failed on Windows during icon generation**, because the Cairo shared library (`cairo-2` / `libcairo-2.dll`) was missing. Its Linux smoke job succeeded. Fix the icon-generation dependency or use a supported checked-in icon before treating every Windows build route as green. A passing CI run does **not** independently prove a local user has booted the executable and successfully indexed real shop files.
+
+ForgeVault is the planned document/revision owner for future [EZ-FAIR](https://github.com/danieloculus0-bot/EZ-FAIR) and [EZ-FEA](https://github.com/danieloculus0-bot/EZ-FEA) artifacts; that cross-repository metadata workflow is **not yet connected**. [Portfolio audit](https://github.com/danieloculus0-bot/Axiom_Beta/blob/main/docs/PORTFOLIO_AUDIT_2026-10-20.md).
