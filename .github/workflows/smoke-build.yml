@@ -51,10 +51,10 @@ jobs:
         shell: pwsh
         run: .\.venv\Scripts\python.exe scripts/ci_smoke.py
 
-      - name: Generate Windows icon
-        shell: pwsh
-        run: .\scripts\Make-ForgeVaultIcon.ps1
-
+      # The optional SVG-to-ICO script uses CairoSVG, which requires a native
+      # Cairo DLL not present on clean windows-latest runners. PyInstaller can
+      # build the executable without an icon. Keep brand conversion manual until
+      # a dependency-free, tested image pipeline is available.
       - name: Build ForgeVault.exe
         shell: pwsh
         run: .\scripts\Build-ForgeVaultExe.ps1
