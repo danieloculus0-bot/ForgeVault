@@ -43,7 +43,7 @@ class LocalVaultStorage:
 
     @staticmethod
     def _sync_directory(directory: Path) -> None:
-        """Persist a completed rename when directory fsync is supported."""
+        """Persist a completed object creation when directory fsync is supported."""
         if os.name != "posix":
             return
         fd = None
@@ -52,7 +52,7 @@ class LocalVaultStorage:
             os.fsync(fd)
         except OSError:
             # Some mounted/network filesystems do not support directory fsync.
-            # The object file itself was already fsynced before rename.
+            # The object file itself was already fsynced before final publication.
             pass
         finally:
             if fd is not None:
@@ -80,11 +80,14 @@ class LocalVaultStorage:
                     staged.write(content)
                     staged.flush()
                     os.fsync(staged.fileno())
-                if destination.exists():
+                # Hard linking a fully fsynced staged object creates the
+                # final digest name only when absent; it never overwrites a
+                # competing writer's destination on Windows or POSIX.
+                try:
+                    os.link(temp_path, destination)
+                except FileExistsError:
                     self._verified_read(sha256, destination)
                 else:
-                    os.replace(temp_path, destination)
-                    temp_path = None
                     self._sync_directory(destination.parent)
             finally:
                 if temp_path is not None:

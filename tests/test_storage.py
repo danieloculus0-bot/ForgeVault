@@ -47,42 +47,42 @@ def test_existing_corrupt_object_is_rejected_on_read_and_write(tmp_path):
     assert target.read_bytes() == b"tampered content"  # never silently repair
 
 
-def test_atomic_replace_never_exposes_partial_destination(tmp_path, monkeypatch):
+def test_atomic_link_never_exposes_partial_destination(tmp_path, monkeypatch):
     from forgevault.storage import local
 
     storage = LocalVaultStorage(tmp_path)
     payload = b"CAD assembly" * 10000
     expected_digest = hashlib.sha256(payload).hexdigest()
     observed = []
-    real_replace = local.os.replace
+    real_link = local.os.link
 
-    def inspect_replace(src, dst):
+    def inspect_link(src, dst):
         source, target = Path(src), Path(dst)
         assert source.parent == target.parent
         assert target.name == expected_digest
         assert not target.exists()
         assert source.read_bytes() == payload
         observed.append(True)
-        return real_replace(src, dst)
+        return real_link(src, dst)
 
-    monkeypatch.setattr(local.os, "replace", inspect_replace)
+    monkeypatch.setattr(local.os, "link", inspect_link)
     digest, _, _ = storage.put(payload)
     assert observed == [True]
     assert storage.get(digest) == payload
     assert not list(tmp_path.rglob("*.tmp"))
 
 
-def test_failed_replace_does_not_leave_partial_object_or_temp(tmp_path, monkeypatch):
+def test_failed_link_does_not_leave_partial_object_or_temp(tmp_path, monkeypatch):
     from forgevault.storage import local
 
     storage = LocalVaultStorage(tmp_path)
     payload = b"interrupted release drawing"
     digest = hashlib.sha256(payload).hexdigest()
 
-    def failing_replace(src, dst):
+    def failing_link(src, dst):
         raise OSError("simulated storage failure")
 
-    monkeypatch.setattr(local.os, "replace", failing_replace)
+    monkeypatch.setattr(local.os, "link", failing_link)
     with pytest.raises(OSError, match="simulated storage failure"):
         storage.put(payload)
     assert not storage._object_path(digest).exists()
