@@ -40,3 +40,28 @@ Verify backup/restore and orphan-object reconciliation, then expose permissioned
 - [**Full earlier README: setup, feature history, experiments and rationale**](docs/archive/README_2026-10-20_before_refresh.md)
 
 Historical details are archived, not discarded. Unverified planned features are not silently described as shipped.
+
+
+## API security deployment requirements
+
+The \`/api/v1\` HTTP API (including desktop bridge endpoints) requires a Bearer
+token on **every** request. No authentication bypass is enabled for local traffic.
+Provision \`FORGEVAULT_API_TOKENS_JSON\` through deployment secrets as
+\`{"<sha256-of-token>":{"user":"verified-user","role":"editor"}}\`.
+Hash each random token with \`hashlib.sha256(token.encode()).hexdigest()\`;
+do not commit raw tokens or credentials. Supported roles are \`viewer\`,
+\`editor\`, \`reviewer\`, \`admin\`. Review decisions require reviewer/admin,
+record writes editor/admin, and destructive/JobBoss2 export operations admin.
+The server attributes actions to the authenticated identity and rejects
+conflicting actor/submitted_by/reviewer claims. Bearer tokens are not browser
+cookies, so cross-site requests cannot acquire them automatically. Keep tokens
+out of query parameters and require HTTPS on all non-loopback transports.
+
+The packaged API's \`/ui\` is a static frontend; browser-to-API token
+provisioning and end-user sign-in **are not implemented in this patch**.
+The web UI's protected API calls will fail until a secure client-side credential
+workflow or verified identity proxy is integrated. This is an explicit,
+fail-closed deployment blocker, not a reason to re-enable anonymous writes.
+The supplied Docker Compose file binds only to loopback and demands external
+database and token secrets. Confirm authorization for any other transport or
+integration separately.

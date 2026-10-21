@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ..config import settings
+from ..security import authenticated_actor
 from ..database import get_session
 from ..models import Dependency, FileVersion, IngestJob, IntegrationEvent, MetadataFieldDefinition, PluginExecution, Record
 from ..schemas import (
@@ -101,7 +102,7 @@ def create_source_folder(payload: SourceFolderCreate, session: Session = Depends
             session,
             path=payload.path,
             display_name=payload.display_name,
-            actor=payload.actor,
+            actor=authenticated_actor(),
             recursive=payload.recursive,
             include_hidden=payload.include_hidden,
         )
@@ -117,7 +118,7 @@ def deactivate_source_folder(source_folder_id: UUID, payload: SourceFolderRemove
     if not payload.confirm_remove_from_index_only:
         raise HTTPException(status_code=422, detail="confirm_remove_from_index_only must be true; this action never deletes files from disk")
     try:
-        folder = remove_source_folder(session, source_folder_id=source_folder_id, actor=payload.actor)
+        folder = remove_source_folder(session, source_folder_id=source_folder_id, actor=authenticated_actor())
         session.commit()
         return folder
     except ValueError as exc:
@@ -128,7 +129,7 @@ def deactivate_source_folder(source_folder_id: UUID, payload: SourceFolderRemove
 @router.post("/source-folders/{source_folder_id}/index", response_model=FolderIngestRead)
 def index_saved_source_folder(source_folder_id: UUID, payload: SourceFolderIndexRequest, session: Session = Depends(get_session)):
     try:
-        result = index_source_folder(session, source_folder_id=source_folder_id, actor=payload.actor, max_files=payload.max_files)
+        result = index_source_folder(session, source_folder_id=source_folder_id, actor=authenticated_actor(), max_files=payload.max_files)
         session.commit()
         return result
     except ValueError as exc:
@@ -139,7 +140,7 @@ def index_saved_source_folder(source_folder_id: UUID, payload: SourceFolderIndex
 @router.post("/reviews", response_model=ReviewRequestRead, status_code=status.HTTP_201_CREATED)
 def submit_review(payload: ReviewRequestCreate, session: Session = Depends(get_session)):
     try:
-        review = create_review_request(session, **payload.model_dump())
+        review = create_review_request(session, **{**payload.model_dump(), "submitted_by": authenticated_actor()})
         session.commit()
         return review
     except ValueError as exc:
@@ -155,7 +156,7 @@ def review_queue(status_filter: str | None = "pending", assigned_checker: str | 
 @router.post("/reviews/{review_id}/decision", response_model=ReviewRequestRead)
 def decide_review(review_id: UUID, payload: ReviewDecision, session: Session = Depends(get_session)):
     try:
-        review = review_decision(session, review_id=review_id, reviewer=payload.reviewer, decision=payload.decision, comment=payload.comment)
+        review = review_decision(session, review_id=review_id, reviewer=authenticated_actor(), decision=payload.decision, comment=payload.comment)
         session.commit()
         return review
     except ValueError as exc:
@@ -178,7 +179,7 @@ def create_managed_record(payload: RecordCreate, session: Session = Depends(get_
         customer_revision=payload.customer_revision,
         internal_revision=payload.internal_revision,
         metadata=payload.metadata,
-        actor=payload.actor,
+        actor=authenticated_actor(),
     )
     session.commit()
     return record
@@ -197,7 +198,7 @@ def checkin_record(internal_record_id: str, payload: CheckInRequest, session: Se
             session,
             record=record,
             file_path=payload.file_path,
-            actor=payload.actor,
+            actor=authenticated_actor(),
             note=payload.note,
             customer_revision=payload.customer_revision,
             internal_revision=payload.internal_revision,
@@ -224,7 +225,7 @@ def ingest_file(payload: IngestRequest, session: Session = Depends(get_session))
             customer_revision=payload.customer_revision,
             internal_revision=payload.internal_revision,
             metadata=payload.metadata,
-            actor=payload.actor,
+            actor=authenticated_actor(),
             mime_type=payload.mime_type,
         )
         session.commit()
@@ -253,9 +254,9 @@ def checkout_status(internal_record_id: str, session: Session = Depends(get_sess
 def checkout_record(internal_record_id: str, payload: CheckoutCreate, session: Session = Depends(get_session)):
     record = get_record_by_internal_id(session, internal_record_id)
     try:
-        checkout = check_out(session, record_id=record.id, actor=payload.actor, reason=payload.reason)
+        checkout = check_out(session, record_id=record.id, actor=authenticated_actor(), reason=payload.reason)
         session.commit()
-        return {"checkout_id": str(checkout.id), "internal_record_id": record.internal_record_id, "checked_out_by": payload.actor}
+        return {"checkout_id": str(checkout.id), "internal_record_id": record.internal_record_id, "checked_out_by": authenticated_actor()}
     except ValueError as exc:
         session.rollback()
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -265,9 +266,9 @@ def checkout_record(internal_record_id: str, payload: CheckoutCreate, session: S
 def cancel_record_checkout(internal_record_id: str, payload: CheckoutCancel, session: Session = Depends(get_session)):
     record = get_record_by_internal_id(session, internal_record_id)
     try:
-        checkout = cancel_checkout(session, record_id=record.id, actor=payload.actor, reason=payload.reason, force=payload.force)
+        checkout = cancel_checkout(session, record_id=record.id, actor=authenticated_actor(), reason=payload.reason, force=payload.force)
         session.commit()
-        return {"checkout_id": str(checkout.id), "internal_record_id": record.internal_record_id, "cancelled_by": payload.actor}
+        return {"checkout_id": str(checkout.id), "internal_record_id": record.internal_record_id, "cancelled_by": authenticated_actor()}
     except ValueError as exc:
         session.rollback()
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -277,7 +278,7 @@ def cancel_record_checkout(internal_record_id: str, payload: CheckoutCancel, ses
 def transition_lifecycle(internal_record_id: str, payload: LifecycleMove, session: Session = Depends(get_session)):
     record = get_record_by_internal_id(session, internal_record_id)
     try:
-        package = transition_record(session, record=record, to_state_name=payload.to_state, actor=payload.actor, reason=payload.reason)
+        package = transition_record(session, record=record, to_state_name=payload.to_state, actor=authenticated_actor(), reason=payload.reason)
         session.commit()
         return {
             "internal_record_id": record.internal_record_id,
@@ -353,7 +354,7 @@ def ingest_folder(payload: FolderIngestRequest, session: Session = Depends(get_s
         result = run_folder_ingest(
             session,
             folder_path=payload.folder_path,
-            actor=payload.actor,
+            actor=authenticated_actor(),
             internal_revision=payload.internal_revision,
             customer_part_number=payload.customer_part_number,
             customer_revision=payload.customer_revision,
@@ -371,7 +372,7 @@ def ingest_folder(payload: FolderIngestRequest, session: Session = Depends(get_s
 @router.post("/integrations/jobboss2/release-packages/{release_package_id}/export", response_model=IntegrationEventRead)
 def export_jobboss2_release_package(release_package_id: UUID, payload: JobBoss2ExportRequest, session: Session = Depends(get_session)):
     try:
-        event = export_release_package_to_jobboss2(session, release_package_id=release_package_id, actor=payload.actor, mode=payload.mode)
+        event = export_release_package_to_jobboss2(session, release_package_id=release_package_id, actor=authenticated_actor(), mode=payload.mode)
         session.commit()
         return event
     except ValueError as exc:
