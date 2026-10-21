@@ -1,7 +1,7 @@
 """Isolated real BEAN Core memory worker for ForgeVault record reviews.
 
 Reads one strictly metadata-only packet on stdin. BEAN Core owns the persistent
-memory and event journal; this worker does not import a mock adapter, modify
+memory and event journal; this worker does not invoke a language-model adapter, modify
 PDM records, or interpret a journal entry as an engineering approval.
 """
 from __future__ import annotations
