@@ -270,15 +270,49 @@
         const r = item.record; const v = item.latest_version; const name = v?.filename || '(no file version)'; const type = ext(name); const fileType = v?.version_metadata?.file_type?.label || type;
         let checkoutText = 'Checking checkout status...';
         try { const status = await jsonFetch(`/api/v1/records/${encodeURIComponent(r.internal_record_id)}/checkout`); checkoutText = status.is_checked_out ? `Checked out by ${status.checkout.checked_out_by}` : 'Available for checkout'; } catch (e) { checkoutText = e.message; }
-        el.innerHTML = `<div class="preview"><div class="preview-card"><div class="preview-icon">${esc(type.slice(0,4))}</div><div>${esc(name)}</div><div class="muted">${esc(fileType)}</div></div></div><h2>${esc(name)}</h2><div class="sub">${esc(r.customer_part_number || 'Unmapped')} · ${esc(r.internal_record_id)}</div><div class="pill">${esc(checkoutText)}</div><div class="button-row"><button id="checkout-btn">Check Out</button><button class="primary" id="submit-review-btn">Submit for Review</button><button>Check In New Version</button><button>Release</button><button id="cancel-checkout-btn" class="danger">Cancel Checkout</button></div><div class="meta"><div>File Type</div><div>${esc(fileType)}</div><div>Customer Rev</div><div>${esc(r.customer_revision || '-')}</div><div>Internal Rev</div><div>${esc(r.internal_revision || '-')}</div><div>Source Path</div><div title="${esc(v?.original_source_path || '')}">${esc(v?.original_source_path || '-')}</div><div>Record ID</div><div>${esc(r.internal_record_id)}</div></div><div class="versions"><div class="muted">Loading version history...</div></div>`;
+        el.innerHTML = `<div class="preview"><div class="preview-card"><div class="preview-icon">${esc(type.slice(0,4))}</div><div>${esc(name)}</div><div class="muted">${esc(fileType)}</div></div></div><h2>${esc(name)}</h2><div class="sub">${esc(r.customer_part_number || 'Unmapped')} · ${esc(r.internal_record_id)}</div><div class="pill">${esc(checkoutText)}</div><div class="button-row"><button id="checkout-btn">Check Out</button><button class="primary" id="submit-review-btn">Submit for Review</button><button>Check In New Version</button><button>Release</button><button id="cancel-checkout-btn" class="danger">Cancel Checkout</button><button id="bean-review-btn">🌱 BEAN Review</button></div><div id="bean-review-result" class="setup-card" style="display:none"></div><div class="meta"><div>File Type</div><div>${esc(fileType)}</div><div>Customer Rev</div><div>${esc(r.customer_revision || '-')}</div><div>Internal Rev</div><div>${esc(r.internal_revision || '-')}</div><div>Source Path</div><div title="${esc(v?.original_source_path || '')}">${esc(v?.original_source_path || '-')}</div><div>Record ID</div><div>${esc(r.internal_record_id)}</div></div><div class="versions"><div class="muted">Loading version history...</div></div>`;
         document.querySelector('#checkout-btn').addEventListener('click', async () => checkoutRecord(r.internal_record_id));
         document.querySelector('#cancel-checkout-btn').addEventListener('click', async () => cancelCheckout(r.internal_record_id));
         document.querySelector('#submit-review-btn').addEventListener('click', async () => submitSelectedForReview());
+        document.querySelector('#bean-review-btn').addEventListener('click', async () => reviewWithBean(r.internal_record_id));
         try { const versions = await jsonFetch(`/api/v1/records/${encodeURIComponent(r.internal_record_id)}/versions`); el.querySelector('.versions').innerHTML = '<strong>Version History</strong>' + versions.map(ver => `<div class="version-row"><div>v${ver.version_number}</div><div><div>${esc(ver.filename)}</div><div class="muted">${esc(ver.original_source_path)}</div></div></div>`).join(''); } catch (e) { el.querySelector('.versions').innerHTML = `<span class="error">${esc(e.message)}</span>`; }
       }
 
       async function search() {
         try { const q = document.querySelector('#q').value || state.lastQuery || 'UNMAPPED'; state.lastQuery = q; setStatus('Searching vault...'); const data = await jsonFetch(`/api/v1/search?q=${encodeURIComponent(q)}`); state.records = data; state.selectedRecordIndex = null; renderTable(); setStatus(`${data.length} record(s) loaded.`); } catch (e) { setStatus(e.message, true); }
+      }
+
+      async function reviewWithBean(internalId) {
+        const pane = document.querySelector('#bean-review-result');
+        if (!pane) return;
+        pane.style.display = 'block';
+        pane.textContent = 'BEAN is checking stored evidence and comparing prior reviews...';
+        try {
+          const report = await jsonFetch('/api/v1/records/' + encodeURIComponent(internalId) + '/bean-review', {method:'POST'});
+          const selected = selectedRecord();
+          if (!selected || selected.record.internal_record_id !== internalId) return;
+          const labels = {
+            missing_file_version:'No managed file version', unsupported_object_storage:'Object storage cannot be checked locally',
+            stored_object_size_mismatch:'Stored file size differs from recorded size',
+            stored_object_integrity_failed:'Stored file is unavailable or failed SHA-256 verification',
+            latest_version_revision_mismatch:'Latest file revision differs from managed record',
+            unmapped_customer_identity:'Customer part identity needs review',
+            unresolved_dependencies:'Unresolved assembly/file references',
+            active_checkout:'Record is currently checked out', pending_review:'A human review is pending',
+            released_without_matching_version_package:'Released state has no matching versioned release package'
+          };
+          const issues = report.issues.map(code => '<li>' + esc(labels[code] || code) + '</li>').join('');
+          pane.innerHTML = '<strong>🌱 BEAN record review</strong><div class="muted">Source evidence, not engineering approval</div>' +
+            (issues ? '<ul>' + issues + '</ul>' : '<div>No problems detected by the implemented checks. This is not release approval.</div>') +
+            '<div class="muted">Earlier BEAN reviews: ' + Number(report.bean.prior_reviews) +
+            ' · Recurring: ' + Number(report.bean.persistent_issues.length) +
+            ' · Resolved since previous: ' + Number(report.bean.resolved_issues.length) +
+            ' · Memory receipt: ' + Number(report.bean.bean_event_id) + '</div>';
+          setStatus('BEAN recorded review evidence for ' + internalId + '. No PDM state changed.');
+        } catch (e) {
+          pane.textContent = 'BEAN unavailable: ' + e.message;
+          setStatus('BEAN review unavailable: ' + e.message, true);
+        }
       }
 
       async function checkoutRecord(internalId) {
