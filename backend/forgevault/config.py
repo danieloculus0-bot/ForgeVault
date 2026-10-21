@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Runtime settings for the ForgeVault API."""
 
-    database_url: str = "postgresql+psycopg://forgevault:forgevault@localhost:5432/forgevault"
+    database_url: str = "sqlite+pysqlite:///./forgevault-local.db"
     local_vault_root: str = "./data/vault"
     staging_root: str = "./data/staging"
     service_name: str = "forgevault-api"
