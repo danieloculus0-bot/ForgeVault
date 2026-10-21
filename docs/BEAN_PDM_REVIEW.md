@@ -37,7 +37,7 @@ $env:FORGEVAULT_BEAN_CORE_ROOT = "D:\BEAN\core"
 $env:FORGEVAULT_BEAN_MEMORY_PATH = "$env:LOCALAPPDATA\ForgeVault\bean-memory.sqlite3"
 ```
 
-The integration returns HTTP 503 with a clear error if BEAN Core is absent or not configured. It does not silently substitute a fake agent. A packaged Windows desktop needs the separately installed Python and source checkout: the packaging workflow compiling ForgeVault by itself does **not** make BEAN Core available.
+The integration returns HTTP 503 with a clear error if BEAN Core is absent or not configured. It does not silently substitute a stand-in agent. A packaged Windows desktop needs the separately installed Python and source checkout: the packaging workflow compiling ForgeVault by itself does **not** make BEAN Core available.
 
 ## Verification and deployment gaps
 
