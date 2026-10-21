@@ -2,12 +2,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 import sys
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import HTMLResponse
 
 from .api.desktop import router as desktop_router
 from .api.routes import router
 from .config import settings
+from .security import authorize_api_request
 from .database import create_all
 
 
@@ -58,8 +59,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="ForgeVault API", version="0.1.0", lifespan=lifespan)
-app.include_router(router, prefix="/api/v1")
-app.include_router(desktop_router, prefix="/api/v1")
+app.include_router(router, prefix="/api/v1", dependencies=[Depends(authorize_api_request)])
+app.include_router(desktop_router, prefix="/api/v1", dependencies=[Depends(authorize_api_request)])
 
 
 @app.get("/healthz")
