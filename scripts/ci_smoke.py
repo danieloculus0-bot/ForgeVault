@@ -171,7 +171,7 @@ def main() -> None:
         decided = assert_status(
             client.post(
                 f"/api/v1/reviews/{review['id']}/decision",
-                json={"reviewer": "checker", "decision": "approved", "comment": "CI approved checked-in version"},
+                json={"reviewer": "ci", "decision": "approved", "comment": "CI approved checked-in version"},
             )
         )
         if decided["status"] != "approved":
