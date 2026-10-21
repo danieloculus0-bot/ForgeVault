@@ -16,9 +16,6 @@ import sqlite3
 import tempfile
 import zipfile
 
-from . import __name__ as _module_name  # Keep normal packaged imports resolvable.
-
-
 _DB_MEMBER = "database/forgevault.db"
 _MANIFEST = "manifest.json"
 _VERSION = 1
@@ -212,6 +209,19 @@ def restore_to_new_home(archive_path: str | Path, target_home: str | Path) -> di
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 with z.open(member) as src, destination.open("wb") as dst:
                     shutil.copyfileobj(src, dst, length=1024 * 1024)
+        # File-object records store absolute file:// paths; relocate the DB
+        # before exposing the restored home at its final directory.
+        local_db = stage / "data" / "forgevault.db"
+        with sqlite3.connect(local_db) as con:
+            for entry in manifest["objects"]:
+                digest = entry["sha256"]
+                live_path = target / "data" / "vault" / digest[:2] / digest[2:4] / digest
+                con.execute(
+                    "UPDATE file_objects SET storage_uri=? WHERE sha256=?",
+                    (f"file://{live_path}", digest),
+                )
+        if _objects_from_database(local_db) != manifest["objects"]:
+            raise VaultSnapshotError("Relocated restore database failed reference verification")
         if target.exists() or target.is_symlink():
             raise FileExistsError("Restore destination appeared during extraction")
         os.replace(stage, target)
