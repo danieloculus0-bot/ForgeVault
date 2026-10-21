@@ -22,7 +22,7 @@ from sqlalchemy import select
 
 from forgevault.database import Base, SessionLocal, engine
 from forgevault.main import app
-from forgevault.models import Dependency, IntegrationEvent, MetadataFieldDefinition, PluginExecution, ReleasePackage
+from forgevault.models import Dependency, IntegrationEvent, MetadataFieldDefinition, PluginExecution, ReleasePackage, Record
 
 
 class AuthenticatedTestClient(TestClient):
