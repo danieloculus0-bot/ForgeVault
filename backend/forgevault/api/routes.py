@@ -39,6 +39,7 @@ from ..schemas import (
     ReviewRequestRead,
     NotificationEventRead,
 )
+from ..services.bean_review import collect_record_health, run_bean_review
 from ..services.checkin import check_in_from_path
 from ..services.folder_ingestion import ingest_folder as run_folder_ingest
 from ..services.ingestion import ingest_file as run_ingest
@@ -187,6 +188,17 @@ def create_managed_record(payload: RecordCreate, session: Session = Depends(get_
 @router.get("/records/{internal_record_id}", response_model=RecordRead)
 def get_record(internal_record_id: str, session: Session = Depends(get_session)):
     return get_record_by_internal_id(session, internal_record_id)
+
+
+@router.post("/records/{internal_record_id}/bean-review")
+def bean_review_record(internal_record_id: str, session: Session = Depends(get_session)):
+    """Explicit, source-grounded review. BEAN cannot check in, release or approve."""
+    record = get_record_by_internal_id(session, internal_record_id)
+    snapshot = collect_record_health(session, record)
+    try:
+        return run_bean_review(snapshot)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @router.post("/records/{internal_record_id}/checkin", response_model=CheckInRead, status_code=status.HTTP_201_CREATED)
