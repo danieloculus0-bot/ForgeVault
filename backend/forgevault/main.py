@@ -5,6 +5,7 @@ import sys
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
+from .api.auth import authorize_api_request
 from .api.desktop import router as desktop_router
 from .api.routes import router
 from .config import settings
@@ -58,6 +59,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="ForgeVault API", version="0.1.0", lifespan=lifespan)
+app.middleware("http")(authorize_api_request)
 app.include_router(router, prefix="/api/v1")
 app.include_router(desktop_router, prefix="/api/v1")
 

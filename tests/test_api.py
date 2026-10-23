@@ -1,5 +1,7 @@
 import base64
+import json
 import os
+import secrets
 from pathlib import Path
 
 os.environ["FORGEVAULT_DATABASE_URL"] = "sqlite+pysqlite:///./test_forgevault.db"
@@ -14,13 +16,31 @@ from forgevault.main import app
 from forgevault.models import Dependency, IntegrationEvent, MetadataFieldDefinition, PluginExecution, ReleasePackage
 
 
+# Local-test principals only. Use a distinct authenticated identity when a
+# workflow switches actors; never bypass the production authentication path.
+TEST_TOKENS = {actor: secrets.token_urlsafe(32) for actor in ("alice", "bob", "carol", "desktop")}
+
+
+def auth_headers(actor="alice"):
+    return {"Authorization": f"Bearer {TEST_TOKENS[actor]}"}
+
+
+def authenticated_client(actor="alice"):
+    return TestClient(app, headers=auth_headers(actor))
+
+
 def setup_function():
+    os.environ["FORGEVAULT_AUTH_PRINCIPALS"] = json.dumps({
+        token: {"actor": actor, "role": "admin"}
+        for actor, token in TEST_TOKENS.items()
+    })
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
 
 def teardown_function():
     Base.metadata.drop_all(bind=engine)
+    os.environ.pop("FORGEVAULT_AUTH_PRINCIPALS", None)
 
 
 def ingest_payload(filename="bracket.step", content=b"ISO-10303-21; FILE_NAME='child-bearing.step';", **overrides):
@@ -40,7 +60,7 @@ def ingest_payload(filename="bracket.step", content=b"ISO-10303-21; FILE_NAME='c
 
 
 def test_ingest_search_checkout_and_release_flow():
-    client = TestClient(app)
+    client = authenticated_client()
     ingest = client.post("/api/v1/ingest", json=ingest_payload(content=b"plain arbitrary bytes"))
     assert ingest.status_code == 201, ingest.text
     assert ingest.json()["version_number"] == 1
@@ -52,14 +72,14 @@ def test_ingest_search_checkout_and_release_flow():
     assert record["customer_part_number"] == "CUST-42"
     assert record["internal_revision"] == "001"
 
-    checkout = client.post(f"/api/v1/records/{record['internal_record_id']}/checkout", json={"actor": "bob"})
+    checkout = client.post(f"/api/v1/records/{record['internal_record_id']}/checkout", json={"actor": "bob"}, headers=auth_headers("bob"))
     assert checkout.status_code == 201
-    second_checkout = client.post(f"/api/v1/records/{record['internal_record_id']}/checkout", json={"actor": "carol"})
+    second_checkout = client.post(f"/api/v1/records/{record['internal_record_id']}/checkout", json={"actor": "carol"}, headers=auth_headers("carol"))
     assert second_checkout.status_code == 409
 
     blocked_version = client.post("/api/v1/ingest", json=ingest_payload(content=b"new bytes", internal_revision="001", actor="alice"))
     assert blocked_version.status_code == 422
-    second_version = client.post("/api/v1/ingest", json=ingest_payload(content=b"new bytes", internal_revision="001", actor="bob"))
+    second_version = client.post("/api/v1/ingest", json=ingest_payload(content=b"new bytes", internal_revision="001", actor="bob"), headers=auth_headers("bob"))
     assert second_version.status_code == 201, second_version.text
     assert second_version.json()["version_number"] == 2
 
@@ -92,7 +112,7 @@ def test_ingest_search_checkout_and_release_flow():
 
 
 def test_unresolved_dependency_blocks_release():
-    client = TestClient(app)
+    client = authenticated_client()
     ingest = client.post("/api/v1/ingest", json=ingest_payload())
     assert ingest.status_code == 201, ingest.text
 
@@ -112,7 +132,7 @@ def test_unresolved_dependency_blocks_release():
 
 
 def test_naming_plugin_can_derive_customer_identity_for_arbitrary_document():
-    client = TestClient(app)
+    client = authenticated_client()
     payload = ingest_payload(
         filename="ACME-900_REVb.pdf",
         content=b"%PDF-1.7\nwork instruction",
@@ -138,7 +158,7 @@ def test_folder_ingest_indexes_arbitrary_files_with_unmapped_identity(tmp_path):
     (root / "random notes.txt").write_text("operator note", encoding="utf-8")
     (root / "plate.dxf").write_text("0\nSECTION", encoding="utf-8")
 
-    client = TestClient(app)
+    client = authenticated_client("desktop")
     result = client.post(
         "/api/v1/ingest-folder",
         json={"folder_path": str(root), "actor": "desktop", "internal_revision": "001", "recursive": True},
