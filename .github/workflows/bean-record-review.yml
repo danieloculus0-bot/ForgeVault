@@ -1,0 +1,33 @@
+name: ForgeVault x BEAN Core record memory
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  real-bean-memory:
+    name: Real BEAN Core review and restart continuity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ForgeVault
+        uses: actions/checkout@v4
+        with:
+          path: forgevault
+      - name: Checkout actual BEAN Core (pinned revision)
+        uses: actions/checkout@v4
+        with:
+          repository: danieloculus0-bot/BEAN
+          ref: bddf32c1368ddf1853d3d2e51ee2f99081e2cc4c
+          path: bean-core
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ForgeVault
+        run: python -m pip install -e "./forgevault[dev]"
+      - name: Run source-grounded and real BEAN memory tests
+        env:
+          FORGEVAULT_BEAN_CORE_ROOT: ${{ github.workspace }}/bean-core
+        run: python -m pytest -q forgevault/tests/test_bean_review.py
