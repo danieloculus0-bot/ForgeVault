@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import os
-import hashlib
-import json
 import tempfile
 from pathlib import Path
 
@@ -18,10 +16,6 @@ def configure_temp_environment() -> tuple[Path, Path]:
     staging.mkdir(parents=True, exist_ok=True)
     outbox.mkdir(parents=True, exist_ok=True)
 
-    smoke_token = "forgevault-ci-generated-in-disposable-workflow"
-    os.environ["FORGEVAULT_API_TOKENS_JSON"] = json.dumps({
-        hashlib.sha256(smoke_token.encode()).hexdigest(): {"user": "ci", "role": "admin"}
-    })
     os.environ["FORGEVAULT_DATABASE_URL"] = f"sqlite+pysqlite:///{(root / 'forgevault.db').as_posix()}"
     os.environ["FORGEVAULT_LOCAL_VAULT_ROOT"] = str(vault)
     os.environ["FORGEVAULT_STAGING_ROOT"] = str(staging)
@@ -51,10 +45,7 @@ def main() -> None:
     assert default_home().name == "ForgeVault"
     configure_desktop_environment(root / "desktop-home")
 
-    # Exercise the verified-identity API using a CI-only Bearer token.
-    # Anonymous reads/writes are rejected by the separate negative test suite.
-    from httpx import Client
-    with TestClient(app, headers={"Authorization": "Bearer forgevault-ci-generated-in-disposable-workflow"}) as client:
+    with TestClient(app) as client:
         assert_status(client.get("/healthz"))
         ui = client.get("/ui")
         if ui.status_code != 200 or "ForgeVault" not in ui.text:
@@ -171,7 +162,7 @@ def main() -> None:
         decided = assert_status(
             client.post(
                 f"/api/v1/reviews/{review['id']}/decision",
-                json={"reviewer": "ci", "decision": "approved", "comment": "CI approved checked-in version"},
+                json={"reviewer": "checker", "decision": "approved", "comment": "CI approved checked-in version"},
             )
         )
         if decided["status"] != "approved":
