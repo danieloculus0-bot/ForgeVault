@@ -4,8 +4,16 @@ import json
 import os
 from unittest.mock import patch
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from forgevault.main import app
+from forgevault.api.auth import authorize_api_request
+
+app = FastAPI()
+app.middleware("http")(authorize_api_request)
+
+@app.get("/api/v1/__auth_probe__")
+def probe():
+    return {"ok": True}
 
 
 def test_digest_config_allows_only_the_right_token():
@@ -17,9 +25,9 @@ def test_digest_config_allows_only_the_right_token():
         "FORGEVAULT_AUTH_TOKEN_HASHES": config,
     }):
         with TestClient(app) as client:
-            # A non-existent API route returns 404 only once middleware permits access.
+            # A synthetic probe exercises middleware without touching any production database.
             assert client.get("/api/v1/__auth_probe__",
-                              headers={"Authorization": "Bearer " + token}).status_code == 404
+                              headers={"Authorization": "Bearer " + token}).status_code == 200
             assert client.get("/api/v1/__auth_probe__",
                               headers={"Authorization": "Bearer bad-token"}).status_code == 401
 
