@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import os
+import secrets
 import tempfile
 from pathlib import Path
 
 
-def configure_temp_environment() -> tuple[Path, Path]:
+def configure_temp_environment() -> tuple[Path, Path, str, str]:
     root = Path(tempfile.mkdtemp(prefix="forgevault-ci-"))
     source = root / "source"
     vault = root / "vault"
@@ -22,7 +24,15 @@ def configure_temp_environment() -> tuple[Path, Path]:
     os.environ["FORGEVAULT_JOBBOSS2_OUTBOX_ROOT"] = str(outbox)
     os.environ["FORGEVAULT_AUTO_CREATE_SCHEMA"] = "true"
     os.environ["FORGEVAULT_ENABLE_DESKTOP_BRIDGE"] = "true"
-    return root, source
+    # Ephemeral CI-only principals. Real API requests must authenticate, including
+    # the desktop workflow, and the review decision needs a distinct reviewer.
+    admin_token = secrets.token_urlsafe(32)
+    reviewer_token = secrets.token_urlsafe(32)
+    os.environ["FORGEVAULT_AUTH_PRINCIPALS"] = json.dumps({
+        admin_token: {"actor": "ci", "role": "admin"},
+        reviewer_token: {"actor": "checker", "role": "reviewer"},
+    })
+    return root, source, admin_token, reviewer_token
 
 
 def assert_status(response, expected: int = 200):
@@ -32,7 +42,7 @@ def assert_status(response, expected: int = 200):
 
 
 def main() -> None:
-    root, source = configure_temp_environment()
+    root, source, admin_token, reviewer_token = configure_temp_environment()
     (source / "12345_A_print.txt").write_text("ForgeVault CI drawing file\n", encoding="utf-8")
     (source / "assy_fixture.SLDASM").write_text("assembly fixture file\n", encoding="utf-8")
     (source / "readme.tmp").write_text("ignored temporary file\n", encoding="utf-8")
@@ -56,6 +66,14 @@ def main() -> None:
             raise AssertionError("UI onboarding helper was not injected into /ui")
         if "releaseSelectedRecord" not in ui.text or "fv-empty-help" not in ui.text:
             raise AssertionError("UI polish helper was not injected into /ui")
+
+        # A deployment without a bearer credential must fail closed. Do not
+        # bypass auth in CI: explicitly exercise the authenticated workflow.
+        if client.get("/api/v1/runtime/config").status_code != 401:
+            raise AssertionError("anonymous API read must return 401")
+        if client.post("/api/v1/source-folders", json={"actor": "ci"}).status_code != 401:
+            raise AssertionError("anonymous API write must return 401")
+        client.headers.update({"Authorization": f"Bearer {admin_token}"})
 
         runtime = assert_status(client.get("/api/v1/runtime/config"))
         if runtime["runtime_mode"] != "desktop" or not runtime["desktop_bridge_enabled"]:
@@ -163,6 +181,7 @@ def main() -> None:
             client.post(
                 f"/api/v1/reviews/{review['id']}/decision",
                 json={"reviewer": "checker", "decision": "approved", "comment": "CI approved checked-in version"},
+                headers={"Authorization": f"Bearer {reviewer_token}"},
             )
         )
         if decided["status"] != "approved":
