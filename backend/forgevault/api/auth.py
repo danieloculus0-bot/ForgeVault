@@ -1,9 +1,11 @@
 """Fail-closed API authentication for multi-user ForgeVault deployments.
 
-Configure FORGEVAULT_AUTH_PRINCIPALS as JSON mapping bearer tokens to
-{"actor": "verified-name", "role": "reader|editor|reviewer|admin"}.
+Configure FORGEVAULT_AUTH_TOKEN_HASHES as JSON mapping SHA-256 bearer-token
+digests to {"actor":"verified-name","role":"reader|editor|reviewer|admin"}.
+Legacy FORGEVAULT_AUTH_PRINCIPALS plain-token mapping remains supported.
 Tokens are credentials, not user-supplied actor identities. Use TLS off-host.
 """
+import hashlib
 import hmac
 import json
 import os
@@ -27,6 +29,28 @@ def _principals():
         token: principal
         for token, principal in value.items()
         if isinstance(token, str) and len(token) >= 24
+        and isinstance(principal, dict)
+        and isinstance(principal.get("actor"), str)
+        and principal["actor"].strip()
+        and principal.get("role") in ROLES
+    }
+
+
+
+def _hashed_principals():
+    """Opt-in digest-only token configuration; no raw credential stored in JSON."""
+    raw = os.environ.get("FORGEVAULT_AUTH_TOKEN_HASHES", "")
+    try:
+        value = json.loads(raw) if raw else {}
+    except (ValueError, TypeError):
+        return {}
+    if not isinstance(value, dict):
+        return {}
+    return {
+        digest.lower(): principal
+        for digest, principal in value.items()
+        if isinstance(digest, str) and len(digest) == 64
+        and all(ch in "0123456789abcdefABCDEF" for ch in digest)
         and isinstance(principal, dict)
         and isinstance(principal.get("actor"), str)
         and principal["actor"].strip()
@@ -59,6 +83,13 @@ async def authorize_api_request(request: Request, call_next):
         (entry for token, entry in principals.items() if hmac.compare_digest(token, supplied)),
         None,
     )
+    if principal is None:
+        digest = hashlib.sha256(supplied.encode("utf-8")).hexdigest()
+        hashed = _hashed_principals()
+        principal = next(
+            (entry for stored, entry in hashed.items() if hmac.compare_digest(stored, digest)),
+            None,
+        )
     if principal is None:
         return JSONResponse({"detail": "Invalid credentials"}, status_code=401)
 
