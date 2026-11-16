@@ -102,3 +102,34 @@ def test_restore_refuses_existing_target_even_if_empty(tmp_path):
     with pytest.raises(FileExistsError, match="Refusing"):
         restore_to_new_home(archive, existing)
     assert (existing / "important.txt").read_text(encoding="utf-8") == "keep me"
+
+
+def test_restore_rejects_archive_replaced_after_preflight(tmp_path, monkeypatch):
+    """An archive swapped after verify must never publish corrupted restored bytes."""
+    from forgevault.services import desktop_backup
+
+    home, digest = _desktop_fixture(tmp_path)
+    archive = tmp_path / "backup.zip"
+    snapshot_desktop(home, archive)
+    original_verify = desktop_backup.verify_snapshot
+
+    def swap_after_preflight(path):
+        verified = original_verify(path)
+        replacement = tmp_path / "replacement.zip"
+        with zipfile.ZipFile(path) as src, zipfile.ZipFile(replacement, "w") as dst:
+            for member in src.namelist():
+                payload = src.read(member)
+                if member.startswith("objects/"):
+                    payload = b"substituted after preflight"
+                dst.writestr(member, payload)
+        replacement.replace(path)
+        return verified
+
+    monkeypatch.setattr(desktop_backup, "verify_snapshot", swap_after_preflight)
+    target = tmp_path / "recovery-must-not-appear"
+    with pytest.raises(VaultSnapshotError, match="Extracted object integrity failure"):
+        restore_to_new_home(archive, target)
+    assert not target.exists()
+    assert LocalVaultStorage(home / "data" / "vault").get(digest) == (
+        b"released drawing revision with immutable bytes"
+    )
