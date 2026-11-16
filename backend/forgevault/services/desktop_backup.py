@@ -222,6 +222,15 @@ def restore_to_new_home(archive_path: str | Path, target_home: str | Path) -> di
                 )
         if _objects_from_database(local_db) != manifest["objects"]:
             raise VaultSnapshotError("Relocated restore database failed reference verification")
+        # The archive may change after preflight verification. Verify the actual
+        # extracted bytes before making the restored home visible.
+        for entry in manifest["objects"]:
+            digest = entry["sha256"]
+            extracted = stage / "data" / "vault" / digest[:2] / digest[2:4] / digest
+            with extracted.open("rb") as src:
+                actual_hash, actual_size = _digest_stream(src)
+            if actual_hash != digest or actual_size != entry["size"]:
+                raise VaultSnapshotError(f"Extracted object integrity failure: {digest}")
         if target.exists() or target.is_symlink():
             raise FileExistsError("Restore destination appeared during extraction")
         os.replace(stage, target)
