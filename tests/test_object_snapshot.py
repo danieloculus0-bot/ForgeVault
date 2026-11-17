@@ -50,3 +50,19 @@ def test_snapshot_refuses_same_store_and_existing_manifest(tmp_path):
     manifest.write_text("{}")
     with pytest.raises(FileExistsError):
         snapshot_objects(source, LocalVaultStorage(tmp_path / "backup"), manifest)
+
+
+def test_snapshot_rejects_nested_stores_and_in_store_manifest(tmp_path):
+    source = LocalVaultStorage(tmp_path / "source")
+    source.put(b"public synthetic sample")
+    nested_backup = LocalVaultStorage(source.root / "backup")
+    with pytest.raises(ValueError, match="non-nested"):
+        snapshot_objects(source, nested_backup, tmp_path / "manifest.json")
+    with pytest.raises(ValueError, match="non-nested"):
+        snapshot_objects(LocalVaultStorage(source.root / "sub"), source, tmp_path / "manifest.json")
+    backup = LocalVaultStorage(tmp_path / "backup")
+    with pytest.raises(ValueError, match="outside"):
+        snapshot_objects(source, backup, source.root / "manifest.json")
+    with pytest.raises(ValueError, match="outside"):
+        snapshot_objects(source, backup, backup.root / "manifest.json")
+    assert not (tmp_path / "manifest.json").exists()
