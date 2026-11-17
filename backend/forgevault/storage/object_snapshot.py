@@ -14,8 +14,13 @@ from .local import LocalVaultStorage, VaultIntegrityError
 def snapshot_objects(source: LocalVaultStorage, destination: LocalVaultStorage, manifest_path: Path) -> dict:
     """Copy and verify every digest object; publish a manifest only on success."""
     manifest_path = Path(manifest_path)
-    if source.root.resolve() == destination.root.resolve():
-        raise ValueError("snapshot destination must differ from source")
+    source_root = source.root.resolve()
+    destination_root = destination.root.resolve()
+    if source_root == destination_root or source_root in destination_root.parents or destination_root in source_root.parents:
+        raise ValueError("snapshot stores must be separate, non-nested directories")
+    manifest_resolved = manifest_path.resolve()
+    if manifest_resolved == source_root or source_root in manifest_resolved.parents or manifest_resolved == destination_root or destination_root in manifest_resolved.parents:
+        raise ValueError("manifest must be outside both object stores")
     if manifest_path.exists():
         raise FileExistsError("snapshot manifest already exists")
     objects = []
